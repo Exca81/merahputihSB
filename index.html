@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Time Tracker - MERAHPUTIH</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-red: #dc2626;
+            --light-red: #fecaca;
+            --dark-red: #991b1b;
+            --pure-white: #ffffff;
+            --off-white: #f8fafc;
+            --gray: #6b7280;
+            --dark-gray: #374151;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--pure-white) 0%, var(--off-white) 100%);
+            color: var(--dark-gray);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(to right, var(--primary-red), var(--dark-red));
+            border-radius: 15px;
+            border: 3px solid var(--primary-red);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            color: var(--pure-white);
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .header h1 i {
+            color: var(--light-red);
+            margin-right: 15px;
+        }
+        
+        .header p {
+            color: var(--light-red);
+            font-size: 1.2rem;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .guild-tag {
+            display: inline-block;
+            background: var(--pure-white);
+            color: var(--primary-red);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+            box-shadow: var(--shadow);
+        }
+        
+        .admin-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .admin-btn {
+            background: var(--pure-white);
+            color: var(--primary-red);
+            border: 2px solid var(--pure-white);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+        
+        .admin-btn:hover {
+            background: var(--primary-red);
+            color: var(--pure-white);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3);
+        }
+        
+        .logout-btn {
+            background: transparent;
+            color: var(--pure-white);
+            border-color: var(--pure-white);
+        }
+        
+        .logout-btn:hover {
+            background: var(--pure-white);
+            color: var(--primary-red);
+        }
+        
+        .alarm-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .alarm-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--pure-white);
+            border: 2px solid var(--pure-white);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .alarm-btn:hover {
+            background: var(--pure-white);
+            color: var(--primary-red);
+            transform: translateY(-2px);
+        }
+        
+        .alarm-btn.active {
+            background: var(--pure-white);
+            color: var(--primary-red);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .alarm-btn.muted {
+            opacity: 0.7;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: var(--pure-white);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid var(--light-red);
+            box-shadow: var(--shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-red);
+        }
+        
+        .card-title {
+            color: var(--primary-red);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-red);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .card-title i {
+            font-size: 1.3rem;
+            color: var(--dark-red);
+        }
+        
+        .edit-btn {
+            background: var(--primary-red);
+            color: var(--pure-white);
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .edit-btn:hover {
+            background: var(--dark-red);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+        }
+        
+        .admin-notes textarea {
+            width: 100%;
+            height: 120px;
+            background: var(--off-white);
+            border: 2px solid var(--light-red);
+            border-radius: 10px;
+            color: var(--dark-gray);
+            padding: 15px;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .admin-notes textarea:focus {
+            outline: none;
+            border-color: var(--primary-red);
+        }
+        
+        .boss-info {
+            text-align: center;
+            background: linear-gradient(to bottom, var(--off-white), var(--pure-white));
+        }
+        
+        .boss-name {
+            font-size: 2.2rem;
+            color: var(--dark-red);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .boss-timer {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-red);
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+            transition: all 0.3s;
+        }
+        
+        .boss-timer.alarm {
+            color: #ff0000;
+            animation: pulse-alarm 1s infinite;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+        }
+        
+        @keyframes pulse-alarm {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .time-info {
+            color: var(--gray);
+            font-size: 1.1rem;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .current-time {
+            text-align: center;
+        }
+        
+        .time-display {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .timezone {
+            background: var(--off-white);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 180px;
+            border: 2px solid var(--light-red);
+        }
+        
+        .timezone .time {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--dark-red);
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .timezone .label {
+            color: var(--primary-red);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .schedule-table th {
+            background-color: var(--primary-red);
+            color: var(--pure-white);
+            padding: 15px;
+            text-align: left;
+        }
+        
+        .schedule-table td {
+            padding: 15px;
+            border-bottom: 2px solid var(--light-red);
+        }
+        
+        .schedule-table tr:hover {
+            background-color: var(--off-white);
+        }
+        
+        .schedule-table tr.active-boss {
+            background-color: rgba(220, 38, 38, 0.1);
+            border-left: 4px solid var(--primary-red);
+        }
+        
+        .schedule-table tr.inactive-day {
+            opacity: 0.6;
+            background-color: rgba(203, 213, 225, 0.3);
+        }
+        
+        .boss-level {
+            display: inline-block;
+            background: var(--primary-red);
+            color: var(--pure-white);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .fixed-schedule {
+            color: var(--dark-red);
+            font-weight: bold;
+            background: var(--light-red);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .active-indicator {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        .day-badge {
+            display: inline-block;
+            background: #8b5cf6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        .day-off-badge {
+            display: inline-block;
+            background: #94a3b8;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        .alarm-indicator {
+            display: inline-block;
+            background: #f59e0b;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+            animation: pulse 1s infinite;
+        }
+        
+        .spawn-order {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: bold;
+            min-width: 25px;
+            text-align: center;
+            margin-right: 8px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .action-btn {
+            background: var(--primary-red);
+            border: none;
+            color: var(--pure-white);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: var(--dark-red);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(220, 38, 38, 0.3);
+        }
+        
+        .add-boss-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--pure-white);
+            border-radius: 15px;
+            border: 2px dashed var(--primary-red);
+            text-align: center;
+        }
+        
+        .add-boss-btn {
+            background: linear-gradient(to right, var(--primary-red), var(--dark-red));
+            color: var(--pure-white);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+        
+        .add-boss-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-refresh {
+            background: var(--pure-white);
+            color: var(--primary-red);
+            border: 2px solid var(--primary-red);
+        }
+        
+        .btn-countdown {
+            background: var(--primary-red);
+            color: var(--pure-white);
+            border: 2px solid var(--primary-red);
+        }
+        
+        .btn-alarm {
+            background: #f59e0b;
+            color: var(--pure-white);
+            border: 2px solid #f59e0b;
+        }
+        
+        .btn-timestamp {
+            background: var(--dark-gray);
+            color: var(--pure-white);
+            border: 2px solid var(--dark-gray);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--pure-white);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            border: 3px solid var(--primary-red);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-red);
+        }
+        
+        .modal-title {
+            color: var(--primary-red);
+            font-size: 1.5rem;
+        }
+        
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: var(--primary-red);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark-gray);
+            font-weight: 600;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--off-white);
+            border: 2px solid var(--light-red);
+            border-radius: 8px;
+            color: var(--dark-gray);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-red);
+        }
+        
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .time-inputs input {
+            flex: 1;
+        }
+        
+        .days-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .day-checkbox {
+            display: none;
+        }
+        
+        .day-label {
+            display: block;
+            padding: 10px;
+            text-align: center;
+            background: var(--off-white);
+            border: 2px solid var(--light-red);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .day-checkbox:checked + .day-label {
+            background: var(--primary-red);
+            color: var(--pure-white);
+            border-color: var(--primary-red);
+        }
+        
+        .day-label:hover {
+            background: var(--light-red);
+        }
+        
+        .days-note {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--gray);
+            text-align: center;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .modal-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn.save {
+            background: var(--primary-red);
+            color: var(--pure-white);
+        }
+        
+        .modal-btn.cancel {
+            background: var(--off-white);
+            color: var(--dark-gray);
+            border: 2px solid var(--light-red);
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Login Modal */
+        .login-form {
+            max-width: 400px;
+        }
+        
+        .admin-status {
+            display: inline-block;
+            background: var(--primary-red);
+            color: var(--pure-white);
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--gray);
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 2px solid var(--light-red);
+        }
+        
+        .guild-motto {
+            color: var(--primary-red);
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 5px;
+        }
+        
+        /* Hide admin controls for non-admin */
+        .admin-only {
+            display: none;
+        }
+        
+        .admin-logged-in .admin-only {
+            display: inline-flex;
+        }
+        
+        .admin-logged-in .admin-only-block {
+            display: block;
+        }
+        
+        /* Alarm notification */
+        .alarm-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--primary-red);
+            color: var(--pure-white);
+            padding: 30px 40px;
+            border-radius: 15px;
+            z-index: 2000;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 4px solid var(--light-red);
+            animation: alarm-popup 0.5s ease-out;
+            display: none;
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        @keyframes alarm-popup {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            70% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .alarm-notification h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--light-red);
+        }
+        
+        .alarm-notification p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .alarm-notification .close-alarm {
+            background: var(--pure-white);
+            color: var(--primary-red);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .alarm-notification .close-alarm:hover {
+            background: var(--light-red);
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-controls {
+                position: static;
+                justify-content: center;
+                margin-top: 15px;
+            }
+            
+            .time-display {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .days-container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .alarm-notification {
+                width: 90%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-dragon"></i> Boss Time Tracker</h1>
+            <p>Real-time tracking for Boss spawn schedules</p>
+            <div class="guild-tag">MERAHPUTIH</div>
+            
+            <div class="admin-controls">
+                <button class="admin-btn" id="adminLoginBtn">
+                    <i class="fas fa-user-shield"></i> Admin Login
+                </button>
+                <button class="admin-btn logout-btn admin-only" id="adminLogoutBtn" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+            
+            <div class="alarm-controls">
+                <button class="alarm-btn" id="toggleAlarmBtn">
+                    <i class="fas fa-bell"></i> Alarm: ON
+                </button>
+                <button class="alarm-btn" id="testAlarmBtn">
+                    <i class="fas fa-volume-up"></i> Test Alarm
+                </button>
+                <button class="alarm-btn" id="muteAlarmBtn">
+                    <i class="fas fa-volume-mute"></i> Mute
+                </button>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card admin-notes">
+                <h2 class="card-title">
+                    <span><i class="fas fa-sticky-note"></i> GUILD NOTES</span>
+                    <button class="edit-btn admin-only" id="editNotesBtn" style="display: none;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </h2>
+                <textarea id="adminNotes" placeholder="Enter guild notes here..." readonly>ini untuk isi catatan utang, pesan moral, dan pesan pesan lainnya</textarea>
+            </div>
+            
+            <div class="card boss-info">
+                <h2 class="card-title">
+                    <span><i class="fas fa-crown"></i> NEXT BOSS SPAWN</span>
+                    <button class="edit-btn admin-only" id="editBossTimeBtn" style="display: none;">
+                        <i class="fas fa-clock"></i> Set Time
+                    </button>
+                </h2>
+                <div class="boss-name" id="currentBoss">Loading...</div>
+                <div class="boss-timer" id="countdownTimer">--:--:--</div>
+                <div class="time-info">
+                    <div id="bossSpawnTime">Auto-calculating next spawn...</div>
+                    <div id="alarmStatus" style="margin-top: 10px; font-size: 0.9rem; color: #f59e0b;">
+                        <i class="fas fa-bell"></i> Alarm aktif 5 menit sebelum spawn
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card current-time">
+                <h2 class="card-title">
+                    <span><i class="fas fa-clock"></i> CURRENT TIME</span>
+                    <button class="edit-btn admin-only" id="editServerTimeBtn" style="display: none;">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </h2>
+                <div class="time-display">
+                    <div class="timezone">
+                        <div class="time" id="indoTime">--:--:--</div>
+                        <div class="label">INDO TIME UTC+7</div>
+                    </div>
+                    <div class="timezone">
+                        <div class="time" id="phTime">--:--:--</div>
+                        <div class="label">PH TIME UTC+8</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">
+                <span><i class="fas fa-calendar-alt"></i> FIELD BOSS SCHEDULE</span>
+                <button class="edit-btn admin-only" id="editScheduleBtn" style="display: none;">
+                    <i class="fas fa-plus-circle"></i> Add Boss
+                </button>
+            </h2>
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>LV</th>
+                        <th>BOSS NAME</th>
+                        <th>SCHEDULE TYPE</th>
+                        <th>NEXT SPAWN</th>
+                        <th class="admin-only-block" style="display: none;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody id="bossSchedule">
+                    <!-- Boss schedule will be populated by JavaScript -->
+                </tbody>
+            </table>
+            
+            <div class="add-boss-container admin-only-block" style="display: none;">
+                <button class="add-boss-btn" id="addNewBossBtn">
+                    <i class="fas fa-plus"></i> ADD NEW FIELD BOSS
+                </button>
+                <p style="margin-top: 15px; color: var(--gray); font-size: 0.9rem;">
+                    Click to add custom Field Boss with flexible schedule options
+                </p>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn btn-refresh" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> Refresh All
+            </button>
+            <button class="btn btn-countdown" id="countdownBtn">
+                <i class="fas fa-hourglass-half"></i> COUNTDOWN
+            </button>
+            <button class="btn btn-alarm" id="alarmBtn">
+                <i class="fas fa-bell"></i> TEST ALARM
+            </button>
+            <button class="btn btn-timestamp" id="timestampBtn">
+                <i class="fas fa-calendar-day"></i> TIME STAMP
+            </button>
+        </div>
+        
+        <div class="footer">
+            <p>ACUMALAKA TEAMS 2026</p>
+            <p class="guild-motto">Log in dulu, mikir belakangan</p>
+        </div>
+    </div>
+
+    <!-- Alarm Notification Modal -->
+    <div class="alarm-notification" id="alarmNotification">
+        <h3><i class="fas fa-bell"></i> BOSS ALARM!</h3>
+        <p id="alarmMessage">Boss will spawn in 5 minutes!</p>
+        <button class="close-alarm" id="closeAlarmBtn">OK, I'm Ready!</button>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content login-form">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-user-shield"></i> Admin Login</h3>
+                <button class="close-modal" id="closeLoginModal">&times;</button>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" placeholder="Enter admin username" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn cancel" id="cancelLogin">Cancel</button>
+                    <button type="submit" class="modal-btn save">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add New Boss Modal -->
+    <div class="modal" id="addBossModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-dragon"></i> Add New Field Boss</h3>
+                <button class="close-modal" id="closeAddBossModal">&times;</button>
+            </div>
+            
+            <form id="addBossForm">
+                <div class="form-group">
+                    <label for="bossLevel">Boss Level</label>
+                    <input type="number" id="bossLevel" min="1" max="200" placeholder="e.g., 88" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bossName">Boss Name *</label>
+                    <input type="text" id="bossName" placeholder="e.g., Crimson Dragon" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bossType">Boss Type</label>
+                    <select id="bossType">
+                        <option value="regular">Regular Field Boss</option>
+                        <option value="world">World Boss</option>
+                        <option value="raid">Raid Boss</option>
+                        <option value="dungeon">Dungeon Boss</option>
+                        <option value="event">Event Boss</option>
+                        <option value="weekly">Weekly Boss</option>
+                    </select>
+                </div>
+                
+                <!-- INTERVAL SCHEDULE WITH DAY SELECTION -->
+                <div class="form-group">
+                    <label for="spawnHour">Next Spawn Time (24-hour format)</label>
+                    <div class="time-inputs">
+                        <input type="number" id="spawnHour" min="0" max="23" placeholder="Hour (0-23)" required>
+                        <input type="number" id="spawnMinute" min="0" max="59" placeholder="Minute (0-59)" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="respawnInterval">Respawn Interval (Hours) *</label>
+                    <input type="number" id="respawnInterval" min="1" max="168" placeholder="e.g., 2 (for 2 hours), max 32h" value="2" required>
+                    <small style="color: var(--gray); display: block; margin-top: 5px;">Support up to 32 hours spawn interval</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Days (Optional - Leave empty for every day)</label>
+                    <div class="days-container">
+                        <input type="checkbox" id="day-sun" class="day-checkbox" value="0">
+                        <label for="day-sun" class="day-label">Sun</label>
+                        
+                        <input type="checkbox" id="day-mon" class="day-checkbox" value="1">
+                        <label for="day-mon" class="day-label">Mon</label>
+                        
+                        <input type="checkbox" id="day-tue" class="day-checkbox" value="2">
+                        <label for="day-tue" class="day-label">Tue</label>
+                        
+                        <input type="checkbox" id="day-wed" class="day-checkbox" value="3">
+                        <label for="day-wed" class="day-label">Wed</label>
+                        
+                        <input type="checkbox" id="day-thu" class="day-checkbox" value="4">
+                        <label for="day-thu" class="day-label">Thu</label>
+                        
+                        <input type="checkbox" id="day-fri" class="day-checkbox" value="5">
+                        <label for="day-fri" class="day-label">Fri</label>
+                        
+                        <input type="checkbox" id="day-sat" class="day-checkbox" value="6">
+                        <label for="day-sat" class="day-label">Sat</label>
+                    </div>
+                    <p class="days-note">Leave all days unselected for boss to spawn EVERY DAY</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bossNotes">Additional Notes (Optional)</label>
+                    <textarea id="bossNotes" placeholder="e.g., Drops legendary equipment, requires 10+ players" rows="3"></textarea>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn cancel" id="cancelAddBoss">Cancel</button>
+                    <button type="submit" class="modal-btn save">Add Boss</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Admin credentials
+        const ADMIN_CREDENTIALS = {
+            username: "admin",
+            password: "acumalaka2026"
+        };
+        
+        // Days of week for display
+        const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        // Boss data structure - DITAMBAHKAN BOSS DENGAN INTERVAL 32 JAM
+        let bossSchedule = [
+            { 
+                id: 1, 
+                level: 88, 
+                name: "Amentis", 
+                type: "regular", 
+                scheduleType: "interval", 
+                // Interval schedule data
+                nextSpawnTime: null,
+                respawnInterval: 2,
+                lastSpawnTime: null,
+                // Days selection (optional)
+                spawnDays: null,
+                notes: "",
+                isActive: false,
+                spawnOrder: 0
+            },
+            { 
+                id: 2, 
+                level: 75, 
+                name: "Araneo", 
+                type: "regular", 
+                scheduleType: "interval",
+                nextSpawnTime: null,
+                respawnInterval: 3,
+                lastSpawnTime: null,
+                spawnDays: [1, 3, 5],
+                notes: "Poison attacks",
+                isActive: false,
+                spawnOrder: 0
+            },
+            { 
+                id: 3, 
+                level: 100, 
+                name: "Asta", 
+                type: "world", 
+                scheduleType: "interval",
+                nextSpawnTime: null,
+                respawnInterval: 6,
+                lastSpawnTime: null,
+                spawnDays: [0, 6],
+                notes: "Weekend world boss",
+                isActive: false,
+                spawnOrder: 0
+            },
+            { 
+                id: 4, 
+                level: 150, 
+                name: "Ancient Dragon", 
+                type: "raid", 
+                scheduleType: "interval",
+                nextSpawnTime: null,
+                respawnInterval: 32, // BOSS DENGAN 32 JAM INTERVAL
+                lastSpawnTime: null,
+                spawnDays: null,
+                notes: "32h respawn time, drops legendary items",
+                isActive: false,
+                spawnOrder: 0
+            }
+        ];
+        
+        // Application state
+        let isAdminLoggedIn = false;
+        let currentBossIndex = 0;
+        let countdownSeconds = 0;
+        let activeBossId = null;
+        
+        // Alarm settings
+        let alarmEnabled = true;
+        let alarmMuted = false;
+        let alarmTriggered = false;
+        let alarmCooldown = false;
+        const ALARM_THRESHOLD = 300; // 5 minutes in seconds
+        
+        // Audio context for sound
+        let audioContext;
+        let alarmSound;
+        
+        // DOM Elements
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+        const adminNotes = document.getElementById('adminNotes');
+        const currentBoss = document.getElementById('currentBoss');
+        const countdownTimer = document.getElementById('countdownTimer');
+        const bossSpawnTime = document.getElementById('bossSpawnTime');
+        const indoTime = document.getElementById('indoTime');
+        const phTime = document.getElementById('phTime');
+        const bossScheduleTable = document.getElementById('bossSchedule');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const countdownBtn = document.getElementById('countdownBtn');
+        const alarmBtn = document.getElementById('alarmBtn');
+        const timestampBtn = document.getElementById('timestampBtn');
+        const editNotesBtn = document.getElementById('editNotesBtn');
+        const editBossTimeBtn = document.getElementById('editBossTimeBtn');
+        const editServerTimeBtn = document.getElementById('editServerTimeBtn');
+        const editScheduleBtn = document.getElementById('editScheduleBtn');
+        const addNewBossBtn = document.getElementById('addNewBossBtn');
+        const toggleAlarmBtn = document.getElementById('toggleAlarmBtn');
+        const testAlarmBtn = document.getElementById('testAlarmBtn');
+        const muteAlarmBtn = document.getElementById('muteAlarmBtn');
+        const alarmNotification = document.getElementById('alarmNotification');
+        const alarmMessage = document.getElementById('alarmMessage');
+        const closeAlarmBtn = document.getElementById('closeAlarmBtn');
+        
+        // Modal elements
+        const loginModal = document.getElementById('loginModal');
+        const addBossModal = document.getElementById('addBossModal');
+        
+        // Initialize function
+        function init() {
+            loadFromLocalStorage();
+            initializeAudio();
+            calculateAllNextSpawnTimes();
+            sortBossesBySpawnTime(); // Urutkan boss berdasarkan waktu spawn
+            updateActiveBoss();
+            populateBossSchedule();
+            updateTimes();
+            setInterval(updateTimes, 1000);
+            setInterval(checkBossSpawn, 1000);
+            setInterval(checkAlarm, 1000);
+            
+            // Initialize alarm button states
+            updateAlarmButtons();
+        }
+        
+        // Initialize audio context for alarm sound
+        function initializeAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                createAlarmSound();
+            } catch (e) {
+                console.warn('Web Audio API not supported, alarm sound disabled');
+                alarmMuted = true;
+                updateAlarmButtons();
+            }
+        }
+        
+        // Create alarm sound using Web Audio API
+        function createAlarmSound() {
+            if (!audioContext) return;
+            
+            // Create oscillator for alarm sound
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Configure alarm sound (beeping sound)
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            
+            // Create gain envelope for beeping effect
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+            
+            // Set master volume to 25% (50% lebih kecil dari normal)
+            gainNode.gain.value = 0.25;
+            
+            alarmSound = {
+                oscillator: oscillator,
+                gainNode: gainNode,
+                playing: false
+            };
+        }
+        
+        // Play alarm sound
+        function playAlarmSound() {
+            if (!alarmSound || alarmMuted || !alarmEnabled) return;
+            
+            try {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                // Start oscillator
+                alarmSound.oscillator.start();
+                alarmSound.playing = true;
+                
+                // Create beeping pattern: 0.3s on, 0.2s off, repeat
+                const now = audioContext.currentTime;
+                const beepDuration = 0.3;
+                const pauseDuration = 0.2;
+                
+                // Beep 1
+                alarmSound.gainNode.gain.setValueAtTime(0, now);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0.25, now + 0.05);
+                alarmSound.gainNode.gain.setValueAtTime(0.25, now + beepDuration - 0.05);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0, now + beepDuration);
+                
+                // Beep 2
+                alarmSound.gainNode.gain.setValueAtTime(0, now + beepDuration + pauseDuration);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0.25, now + beepDuration + pauseDuration + 0.05);
+                alarmSound.gainNode.gain.setValueAtTime(0.25, now + 2*beepDuration + pauseDuration - 0.05);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0, now + 2*beepDuration + pauseDuration);
+                
+                // Beep 3
+                alarmSound.gainNode.gain.setValueAtTime(0, now + 2*beepDuration + 2*pauseDuration);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0.25, now + 2*beepDuration + 2*pauseDuration + 0.05);
+                alarmSound.gainNode.gain.setValueAtTime(0.25, now + 3*beepDuration + 2*pauseDuration - 0.05);
+                alarmSound.gainNode.gain.linearRampToValueAtTime(0, now + 3*beepDuration + 2*pauseDuration);
+                
+                // Stop after 3 beeps
+                setTimeout(() => {
+                    if (alarmSound && alarmSound.playing) {
+                        alarmSound.oscillator.stop();
+                        alarmSound.playing = false;
+                        createAlarmSound(); // Recreate for next time
+                    }
+                }, 2000);
+                
+            } catch (e) {
+                console.warn('Failed to play alarm sound:', e);
+            }
+        }
+        
+        // Stop alarm sound
+        function stopAlarmSound() {
+            if (alarmSound && alarmSound.playing) {
+                try {
+                    alarmSound.oscillator.stop();
+                    alarmSound.playing = false;
+                    createAlarmSound(); // Recreate for next time
+                } catch (e) {
+                    console.warn('Failed to stop alarm sound:', e);
+                }
+            }
+        }
+        
+        // Test alarm sound
+        function testAlarm() {
+            if (alarmMuted) {
+                showNotification('Alarm is muted. Unmute to test.', 'error');
+                return;
+            }
+            
+            playAlarmSound();
+            showNotification('Testing alarm sound...');
+        }
+        
+        // Update alarm button states
+        function updateAlarmButtons() {
+            toggleAlarmBtn.innerHTML = alarmEnabled ? 
+                '<i class="fas fa-bell"></i> Alarm: ON' : 
+                '<i class="fas fa-bell-slash"></i> Alarm: OFF';
+            toggleAlarmBtn.classList.toggle('active', alarmEnabled);
+            
+            muteAlarmBtn.innerHTML = alarmMuted ? 
+                '<i class="fas fa-volume-up"></i> Unmute' : 
+                '<i class="fas fa-volume-mute"></i> Mute';
+            muteAlarmBtn.classList.toggle('muted', alarmMuted);
+        }
+        
+        // Check for alarm condition (5 minutes before spawn)
+        function checkAlarm() {
+            if (!alarmEnabled || alarmCooldown) return;
+            
+            const activeBoss = bossSchedule.find(boss => boss.isActive);
+            if (!activeBoss || !activeBoss.nextSpawnTime) return;
+            
+            const now = new Date();
+            const spawnTime = new Date(activeBoss.nextSpawnTime);
+            const timeDiff = Math.floor((spawnTime.getTime() - now.getTime()) / 1000);
+            
+            // Check if we're 5 minutes or less from spawn
+            if (timeDiff <= ALARM_THRESHOLD && timeDiff > 0) {
+                if (!alarmTriggered) {
+                    triggerAlarm(activeBoss, timeDiff);
+                }
+            } else if (timeDiff > ALARM_THRESHOLD) {
+                // Reset alarm trigger if we're more than 5 minutes away
+                alarmTriggered = false;
+                countdownTimer.classList.remove('alarm');
+            }
+        }
+        
+        // Trigger the alarm
+        function triggerAlarm(boss, timeDiff) {
+            alarmTriggered = true;
+            
+            // Visual alarm - pulse timer
+            countdownTimer.classList.add('alarm');
+            
+            // Sound alarm
+            playAlarmSound();
+            
+            // Show notification popup
+            const minutes = Math.floor(timeDiff / 60);
+            const seconds = timeDiff % 60;
+            alarmMessage.textContent = `${boss.name} will spawn in ${minutes}m ${seconds}s!`;
+            alarmNotification.style.display = 'block';
+            
+            // Set cooldown to prevent multiple triggers
+            alarmCooldown = true;
+            setTimeout(() => {
+                alarmCooldown = false;
+            }, 10000); // 10 second cooldown
+            
+            // Show desktop notification if supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(`BOSS ALERT: ${boss.name}`, {
+                    body: `Will spawn in ${minutes} minutes!`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/1995/1995515.png'
+                });
+            }
+        }
+        
+        // Close alarm notification
+        function closeAlarm() {
+            alarmNotification.style.display = 'none';
+            countdownTimer.classList.remove('alarm');
+            stopAlarmSound();
+        }
+        
+        // Load data from localStorage
+        function loadFromLocalStorage() {
+            const savedSchedule = localStorage.getItem('acumalakaBossSchedule');
+            if (savedSchedule) {
+                try {
+                    bossSchedule = JSON.parse(savedSchedule);
+                } catch (e) {
+                    console.error('Error loading schedule:', e);
+                }
+            }
+            
+            const savedNotes = localStorage.getItem('acumalakaGuildNotes');
+            if (savedNotes) {
+                adminNotes.value = savedNotes;
+            }
+            
+            // Load alarm settings
+            const savedAlarmEnabled = localStorage.getItem('acumalakaAlarmEnabled');
+            if (savedAlarmEnabled !== null) {
+                alarmEnabled = savedAlarmEnabled === 'true';
+            }
+            
+            const savedAlarmMuted = localStorage.getItem('acumalakaAlarmMuted');
+            if (savedAlarmMuted !== null) {
+                alarmMuted = savedAlarmMuted === 'true';
+            }
+        }
+        
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('acumalakaBossSchedule', JSON.stringify(bossSchedule));
+            localStorage.setItem('acumalakaGuildNotes', adminNotes.value);
+            localStorage.setItem('acumalakaAlarmEnabled', alarmEnabled);
+            localStorage.setItem('acumalakaAlarmMuted', alarmMuted);
+        }
+        
+        // PERBAIKAN: Calculate next spawn time for all bosses - SUPPORT 32 JAM
+        function calculateAllNextSpawnTimes() {
+            const now = new Date();
+            const currentDay = now.getDay();
+            
+            bossSchedule.forEach(boss => {
+                if (boss.scheduleType === 'interval') {
+                    // Set initial lastSpawnTime if not set
+                    if (!boss.lastSpawnTime) {
+                        // Set last spawn to waktu yang sesuai dengan interval
+                        const hoursOffset = boss.respawnInterval - 1;
+                        boss.lastSpawnTime = new Date(now.getTime() - hoursOffset * 3600000);
+                    }
+                    
+                    const lastSpawn = new Date(boss.lastSpawnTime);
+                    let nextSpawn = new Date(lastSpawn.getTime() + boss.respawnInterval * 3600000);
+                    
+                    // Keep adding interval until we find a valid spawn time in the future
+                    // Support untuk interval panjang (32 jam)
+                    while (nextSpawn <= now || !isValidSpawnDay(boss, nextSpawn)) {
+                        nextSpawn.setTime(nextSpawn.getTime() + boss.respawnInterval * 3600000);
+                        
+                        // Safety check - jangan infinite loop
+                        const maxLoops = 100;
+                        let loopCount = 0;
+                        while (nextSpawn <= now && loopCount < maxLoops) {
+                            nextSpawn.setTime(nextSpawn.getTime() + boss.respawnInterval * 3600000);
+                            loopCount++;
+                        }
+                    }
+                    
+                    boss.nextSpawnTime = nextSpawn;
+                }
+                
+                boss.isActive = false;
+            });
+            
+            saveToLocalStorage();
+        }
+        
+        // PERBAIKAN: Sort bosses by spawn time
+        function sortBossesBySpawnTime() {
+            // Sort berdasarkan waktu spawn terdekat
+            bossSchedule.sort((a, b) => {
+                if (!a.nextSpawnTime && !b.nextSpawnTime) return 0;
+                if (!a.nextSpawnTime) return 1;
+                if (!b.nextSpawnTime) return -1;
+                
+                const timeA = new Date(a.nextSpawnTime).getTime();
+                const timeB = new Date(b.nextSpawnTime).getTime();
+                return timeA - timeB;
+            });
+            
+            // Update spawn order
+            bossSchedule.forEach((boss, index) => {
+                boss.spawnOrder = index + 1;
+            });
+        }
+        
+        // Check if a spawn day is valid for the boss
+        function isValidSpawnDay(boss, spawnTime) {
+            // If spawnDays is null or empty array, boss spawns every day
+            if (!boss.spawnDays || boss.spawnDays.length === 0) {
+                return true;
+            }
+            
+            // Check if the spawn day is in the allowed days
+            const spawnDay = spawnTime.getDay();
+            return boss.spawnDays.includes(spawnDay);
+        }
+        
+        // Update which boss is active (closest to spawning)
+        function updateActiveBoss() {
+            const now = new Date();
+            let closestBoss = null;
+            let closestTime = Infinity;
+            let closestIndex = -1;
+            
+            // Find boss with closest spawn time
+            bossSchedule.forEach((boss, index) => {
+                if (boss.nextSpawnTime) {
+                    const spawnTime = new Date(boss.nextSpawnTime);
+                    const timeDiff = spawnTime.getTime() - now.getTime();
+                    
+                    if (timeDiff > 0 && timeDiff < closestTime) {
+                        closestTime = timeDiff;
+                        closestBoss = boss;
+                        closestIndex = index;
+                    }
+                }
+            });
+            
+            if (closestBoss) {
+                currentBossIndex = closestIndex;
+                activeBossId = closestBoss.id;
+                currentBoss.textContent = closestBoss.name;
+                countdownSeconds = Math.floor(closestTime / 1000);
+                
+                // Update active status
+                bossSchedule.forEach(boss => {
+                    boss.isActive = (boss.id === closestBoss.id);
+                });
+                
+                // Format next spawn time for display
+                const spawnTime = new Date(closestBoss.nextSpawnTime);
+                const timeStr = spawnTime.toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                // Show day information if boss has specific days
+                let dayInfo = '';
+                if (closestBoss.spawnDays && closestBoss.spawnDays.length > 0) {
+                    const days = closestBoss.spawnDays.map(d => DAYS_SHORT[d]).join(', ');
+                    dayInfo = ` (${days})`;
+                }
+                
+                bossSpawnTime.textContent = 
+                    `${timeStr} | ${DAYS_OF_WEEK[spawnTime.getDay()]}${dayInfo}`;
+            }
+        }
+        
+        // PERBAIKAN: Check if any boss has spawned
+        function checkBossSpawn() {
+            const now = new Date();
+            let updated = false;
+            
+            bossSchedule.forEach(boss => {
+                if (boss.nextSpawnTime && new Date(boss.nextSpawnTime) <= now) {
+                    // Boss has spawned - update last spawn time
+                    boss.lastSpawnTime = boss.nextSpawnTime;
+                    
+                    // Calculate next spawn time
+                    const lastSpawn = new Date(boss.lastSpawnTime);
+                    let nextSpawn = new Date(lastSpawn.getTime() + boss.respawnInterval * 3600000);
+                    
+                    // Make sure the next spawn is in the future
+                    // Support untuk interval panjang
+                    while (nextSpawn <= now || !isValidSpawnDay(boss, nextSpawn)) {
+                        nextSpawn.setTime(nextSpawn.getTime() + boss.respawnInterval * 3600000);
+                    }
+                    
+                    boss.nextSpawnTime = nextSpawn;
+                    updated = true;
+                    
+                    // Show notification for active boss
+                    if (boss.isActive) {
+                        showNotification(`🎉 ${boss.name} has spawned!`);
+                        // Reset alarm for this boss
+                        alarmTriggered = false;
+                        countdownTimer.classList.remove('alarm');
+                    }
+                }
+            });
+            
+            if (updated) {
+                // Urutkan kembali setelah ada boss yang spawn
+                sortBossesBySpawnTime();
+                updateActiveBoss();
+                populateBossSchedule();
+                saveToLocalStorage();
+            }
+        }
+        
+        // PERBAIKAN: Initialize boss schedule table dengan urutan
+        function populateBossSchedule() {
+            bossScheduleTable.innerHTML = '';
+            const now = new Date();
+            const currentDay = now.getDay();
+            
+            bossSchedule.forEach(boss => {
+                const nextSpawn = boss.nextSpawnTime ? new Date(boss.nextSpawnTime) : null;
+                let scheduleTypeHTML = '';
+                let nextSpawnHTML = '';
+                let rowClass = '';
+                
+                // Check if boss is inactive today (has specific days and today is not one of them)
+                if (boss.spawnDays && boss.spawnDays.length > 0 && !boss.spawnDays.includes(currentDay)) {
+                    rowClass = 'inactive-day';
+                }
+                
+                // Schedule type display
+                if (boss.scheduleType === 'interval') {
+                    let scheduleText = `Every ${boss.respawnInterval}h`;
+                    
+                    // Add day information if boss has specific days
+                    if (boss.spawnDays && boss.spawnDays.length > 0) {
+                        const days = boss.spawnDays.map(d => DAYS_SHORT[d]).join(', ');
+                        scheduleTypeHTML = `<span class="day-badge">${days}</span>`;
+                    } else {
+                        scheduleTypeHTML = `<span class="fixed-schedule">${scheduleText}</span>`;
+                    }
+                }
+                
+                // Next spawn display - SUPPORT UNTUK INTERVAL PANJANG
+                if (nextSpawn) {
+                    const timeDiff = nextSpawn.getTime() - now.getTime();
+                    const daysLeft = Math.floor(timeDiff / (3600000 * 24));
+                    const hoursLeft = Math.floor((timeDiff % (3600000 * 24)) / 3600000);
+                    const minutesLeft = Math.floor((timeDiff % 3600000) / 60000);
+                    
+                    // Format waktu tersisa berdasarkan durasi
+                    let timeLeftText = '';
+                    if (daysLeft > 0) {
+                        timeLeftText = `${daysLeft}d ${hoursLeft}h left`;
+                    } else if (hoursLeft > 0) {
+                        timeLeftText = `${hoursLeft}h ${minutesLeft}m left`;
+                    } else {
+                        timeLeftText = `${minutesLeft}m left`;
+                    }
+                    
+                    // Add alarm indicator if less than 5 minutes
+                    const alarmIndicator = timeDiff <= ALARM_THRESHOLD && timeDiff > 0 ? 
+                        '<span class="alarm-indicator">ALARM!</span>' : '';
+                    
+                    nextSpawnHTML = `
+                        ${nextSpawn.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                        ${alarmIndicator}
+                        <br>
+                        <small>${timeLeftText}</small>
+                    `;
+                } else {
+                    nextSpawnHTML = `<span style="color:var(--gray)">Schedule not set</span>`;
+                }
+                
+                const row = document.createElement('tr');
+                if (boss.isActive) {
+                    row.className = 'active-boss';
+                } else if (rowClass) {
+                    row.className = rowClass;
+                }
+                
+                row.innerHTML = `
+                    <td><span class="spawn-order">${boss.spawnOrder}</span></td>
+                    <td><span class="boss-level">${boss.level}</span></td>
+                    <td>
+                        <strong>${boss.name}</strong>
+                        ${boss.isActive ? '<span class="active-indicator">NEXT</span>' : ''}
+                        ${boss.spawnDays && boss.spawnDays.length > 0 && !boss.spawnDays.includes(currentDay) ? 
+                          '<span class="day-off-badge">NOT TODAY</span>' : ''}
+                    </td>
+                    <td>${scheduleTypeHTML}</td>
+                    <td>${nextSpawnHTML}</td>
+                    <td class="admin-only-block" style="display: ${isAdminLoggedIn ? 'table-cell' : 'none'};">
+                        <button class="action-btn edit-boss-btn" data-id="${boss.id}" title="Edit Boss">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-boss-btn" data-id="${boss.id}" title="Delete Boss">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                bossScheduleTable.appendChild(row);
+            });
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.edit-boss-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const bossId = parseInt(this.getAttribute('data-id'));
+                    editBoss(bossId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-boss-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const bossId = parseInt(this.getAttribute('data-id'));
+                    deleteBoss(bossId);
+                });
+            });
+        }
+        
+        // PERBAIKAN: Update time displays dengan format yang lebih baik
+        function updateTimes() {
+            const now = new Date();
+            
+            // INDO TIME (UTC+7)
+            const indoTimeObj = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+            const indoTimeStr = indoTimeObj.toISOString().substr(11, 8);
+            indoTime.textContent = indoTimeStr;
+            
+            // PH TIME (UTC+8)
+            const phTimeObj = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            const phTimeStr = phTimeObj.toISOString().substr(11, 8);
+            phTime.textContent = phTimeStr;
+            
+            // Update countdown dengan format yang lebih baik
+            updateCountdown();
+        }
+        
+        // PERBAIKAN: Update countdown timer dengan support hari
+        function updateCountdown() {
+            countdownSeconds--;
+            
+            if (countdownSeconds < 0) {
+                countdownSeconds = 0;
+            }
+            
+            // Format countdown display dengan support hari
+            const days = Math.floor(countdownSeconds / (3600 * 24));
+            const hours = Math.floor((countdownSeconds % (3600 * 24)) / 3600);
+            const minutes = Math.floor((countdownSeconds % 3600) / 60);
+            const seconds = countdownSeconds % 60;
+            
+            let formattedTime = '';
+            if (days > 0) {
+                formattedTime = 
+                    days.toString().padStart(2, '0') + 'd ' +
+                    hours.toString().padStart(2, '0') + ':' +
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+            } else if (hours > 0) {
+                formattedTime = 
+                    hours.toString().padStart(2, '0') + ':' +
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+            } else {
+                formattedTime = 
+                    minutes.toString().padStart(2, '0') + ':' +
+                    seconds.toString().padStart(2, '0');
+            }
+            
+            countdownTimer.textContent = formattedTime;
+            
+            // Change color when less than 5 minutes for alarm
+            if (countdownSeconds <= ALARM_THRESHOLD && countdownSeconds > 0) {
+                countdownTimer.style.color = '#ff0000';
+                countdownTimer.style.textShadow = '0 0 10px rgba(255, 0, 0, 0.5)';
+            } else if (countdownSeconds < 300) {
+                countdownTimer.style.color = '#dc2626';
+                countdownTimer.style.textShadow = '0 0 10px rgba(220, 38, 38, 0.5)';
+            } else {
+                countdownTimer.style.color = '#dc2626';
+                countdownTimer.style.textShadow = '0 0 10px rgba(220, 38, 38, 0.2)';
+            }
+        }
+        
+        // Admin login/logout functions
+        function loginAdmin(username, password) {
+            if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+                isAdminLoggedIn = true;
+                document.body.classList.add('admin-logged-in');
+                adminLoginBtn.style.display = 'none';
+                adminLogoutBtn.style.display = 'flex';
+                adminNotes.readOnly = false;
+                
+                // Show all admin-only elements
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'inline-flex';
+                });
+                document.querySelectorAll('.admin-only-block').forEach(el => {
+                    el.style.display = 'block';
+                });
+                document.querySelectorAll('td.admin-only-block').forEach(el => {
+                    el.style.display = 'table-cell';
+                });
+                
+                showNotification('Admin login successful!');
+                closeModal(loginModal);
+                return true;
+            } else {
+                showNotification('Invalid username or password', 'error');
+                return false;
+            }
+        }
+        
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            document.body.classList.remove('admin-logged-in');
+            adminLoginBtn.style.display = 'flex';
+            adminLogoutBtn.style.display = 'none';
+            adminNotes.readOnly = true;
+            
+            // Hide all admin-only elements
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.admin-only-block').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('td.admin-only-block').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            showNotification('Admin logged out');
+        }
+        
+        // Modal functions
+        function openModal(modal) {
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal(modal) {
+            modal.style.display = 'none';
+        }
+        
+        // Add new boss
+        function addNewBoss() {
+            // Reset form
+            document.getElementById('addBossForm').reset();
+            
+            // Set default values
+            document.getElementById('bossLevel').value = '';
+            document.getElementById('bossName').value = '';
+            document.getElementById('respawnInterval').value = 2;
+            
+            // Set current time as default
+            const now = new Date();
+            document.getElementById('spawnHour').value = now.getHours();
+            document.getElementById('spawnMinute').value = now.getMinutes();
+            
+            // Uncheck all day checkboxes
+            document.querySelectorAll('.day-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Reset to add mode
+            const modalTitle = document.querySelector('#addBossModal .modal-title');
+            modalTitle.innerHTML = '<i class="fas fa-dragon"></i> Add New Field Boss';
+            const submitBtn = document.querySelector('#addBossModal .modal-btn.save');
+            submitBtn.textContent = 'Add Boss';
+            submitBtn.removeAttribute('data-boss-id');
+            
+            openModal(addBossModal);
+        }
+        
+        // Edit boss function
+        function editBoss(bossId) {
+            const boss = bossSchedule.find(b => b.id === bossId);
+            if (!boss) return;
+            
+            // Reset form
+            document.getElementById('addBossForm').reset();
+            
+            // Fill basic info
+            document.getElementById('bossLevel').value = boss.level;
+            document.getElementById('bossName').value = boss.name;
+            document.getElementById('bossType').value = boss.type;
+            document.getElementById('respawnInterval').value = boss.respawnInterval || 2;
+            document.getElementById('bossNotes').value = boss.notes || '';
+            
+            // Fill time - use next spawn time if available, otherwise current time
+            if (boss.nextSpawnTime) {
+                const nextSpawn = new Date(boss.nextSpawnTime);
+                document.getElementById('spawnHour').value = nextSpawn.getHours();
+                document.getElementById('spawnMinute').value = nextSpawn.getMinutes();
+            } else {
+                const now = new Date();
+                document.getElementById('spawnHour').value = now.getHours();
+                document.getElementById('spawnMinute').value = now.getMinutes();
+            }
+            
+            // Fill day checkboxes
+            if (boss.spawnDays) {
+                document.querySelectorAll('.day-checkbox').forEach(cb => {
+                    cb.checked = boss.spawnDays.includes(parseInt(cb.value));
+                });
+            }
+            
+            // Change form to edit mode
+            const modalTitle = document.querySelector('#addBossModal .modal-title');
+            modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Field Boss';
+            const submitBtn = document.querySelector('#addBossModal .modal-btn.save');
+            submitBtn.textContent = 'Update Boss';
+            submitBtn.setAttribute('data-boss-id', bossId);
+            
+            openModal(addBossModal);
+        }
+        
+        // Delete boss function
+        function deleteBoss(bossId) {
+            if (confirm('Are you sure you want to delete this boss from the schedule?')) {
+                bossSchedule = bossSchedule.filter(b => b.id !== bossId);
+                calculateAllNextSpawnTimes();
+                sortBossesBySpawnTime();
+                updateActiveBoss();
+                populateBossSchedule();
+                saveToLocalStorage();
+                showNotification('Boss deleted from schedule');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'success') {
+            // Remove existing notification
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            const bgColor = type === 'error' ? '#dc2626' : '#10b981';
+            const textColor = '#ffffff';
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${bgColor};
+                color: ${textColor};
+                padding: 15px 25px;
+                border-radius: 10px;
+                z-index: 1000;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease-out;
+                font-weight: 600;
+                border: 2px solid ${type === 'error' ? '#991b1b' : '#059669'};
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Add CSS for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Event Listeners
+        adminLoginBtn.addEventListener('click', () => openModal(loginModal));
+        adminLogoutBtn.addEventListener('click', logoutAdmin);
+        
+        // Alarm controls
+        toggleAlarmBtn.addEventListener('click', function() {
+            alarmEnabled = !alarmEnabled;
+            updateAlarmButtons();
+            saveToLocalStorage();
+            showNotification(`Alarm ${alarmEnabled ? 'enabled' : 'disabled'}`);
+        });
+        
+        testAlarmBtn.addEventListener('click', testAlarm);
+        
+        muteAlarmBtn.addEventListener('click', function() {
+            alarmMuted = !alarmMuted;
+            if (alarmMuted) {
+                stopAlarmSound();
+            }
+            updateAlarmButtons();
+            saveToLocalStorage();
+            showNotification(`Alarm ${alarmMuted ? 'muted' : 'unmuted'}`);
+        });
+        
+        closeAlarmBtn.addEventListener('click', closeAlarm);
+        
+        alarmBtn.addEventListener('click', testAlarm);
+        
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            setTimeout(() => {
+                Notification.requestPermission();
+            }, 2000);
+        }
+        
+        // Login form
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            loginAdmin(username, password);
+        });
+        
+        // Add new boss button
+        addNewBossBtn.addEventListener('click', addNewBoss);
+        editScheduleBtn.addEventListener('click', addNewBoss);
+        
+        // Add boss form - PERBAIKAN UNTUK SUPPORT INTERVAL PANJANG
+        document.getElementById('addBossForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const level = parseInt(document.getElementById('bossLevel').value);
+            const name = document.getElementById('bossName').value.trim();
+            const type = document.getElementById('bossType').value;
+            const hour = parseInt(document.getElementById('spawnHour').value) || 0;
+            const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
+            const respawnInterval = parseInt(document.getElementById('respawnInterval').value) || 2;
+            const notes = document.getElementById('bossNotes').value.trim();
+            
+            // Validasi interval (1-32 jam)
+            if (respawnInterval < 1 || respawnInterval > 32) {
+                showNotification('Respawn interval must be between 1 and 32 hours', 'error');
+                return;
+            }
+            
+            // Get selected days
+            const selectedDays = [];
+            document.querySelectorAll('.day-checkbox:checked').forEach(cb => {
+                selectedDays.push(parseInt(cb.value));
+            });
+            
+            // If no days selected, set to null (spawns every day)
+            const spawnDays = selectedDays.length > 0 ? selectedDays : null;
+            
+            // Create next spawn time based on user input
+            const now = new Date();
+            let nextSpawn = new Date(now);
+            nextSpawn.setHours(hour, minute, 0, 0);
+            
+            // Jika waktu sudah lewat hari ini, atur untuk hari berikutnya
+            // Untuk interval panjang, mungkin perlu beberapa hari ke depan
+            if (nextSpawn <= now) {
+                nextSpawn.setDate(nextSpawn.getDate() + 1);
+            }
+            
+            // Jika boss memiliki hari spesifik, cari hari valid berikutnya
+            if (spawnDays && spawnDays.length > 0) {
+                let daysChecked = 0;
+                while (!spawnDays.includes(nextSpawn.getDay()) && daysChecked < 14) {
+                    nextSpawn.setDate(nextSpawn.getDate() + 1);
+                    daysChecked++;
+                }
+                
+                if (daysChecked >= 14) {
+                    showNotification('Could not find valid spawn day within 2 weeks', 'error');
+                    return;
+                }
+            }
+            
+            // Check if we're editing or adding
+            const submitBtn = document.querySelector('#addBossModal .modal-btn.save');
+            const isEditing = submitBtn.getAttribute('data-boss-id');
+            
+            if (isEditing) {
+                // Update existing boss
+                const bossId = parseInt(submitBtn.getAttribute('data-boss-id'));
+                const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
+                
+                if (bossIndex !== -1) {
+                    // Create new lastSpawnTime based on the new nextSpawnTime
+                    const lastSpawn = new Date(nextSpawn.getTime() - respawnInterval * 3600000);
+                    
+                    // Update the boss with new data
+                    bossSchedule[bossIndex] = {
+                        ...bossSchedule[bossIndex],
+                        level,
+                        name,
+                        type,
+                        respawnInterval,
+                        spawnDays,
+                        notes,
+                        nextSpawnTime: nextSpawn.toISOString(),
+                        lastSpawnTime: lastSpawn.toISOString(),
+                        isActive: false
+                    };
+                    
+                    showNotification(`Boss ${name} updated successfully!`);
+                    
+                    // Reset button state
+                    submitBtn.removeAttribute('data-boss-id');
+                    submitBtn.textContent = 'Add Boss';
+                    document.querySelector('#addBossModal .modal-title').innerHTML = '<i class="fas fa-dragon"></i> Add New Field Boss';
+                }
+            } else {
+                // Add new boss
+                const lastSpawn = new Date(nextSpawn.getTime() - respawnInterval * 3600000);
+                const newBoss = {
+                    id: bossSchedule.length > 0 ? Math.max(...bossSchedule.map(b => b.id)) + 1 : 1,
+                    level,
+                    name,
+                    type,
+                    scheduleType: "interval",
+                    respawnInterval,
+                    spawnDays,
+                    notes,
+                    nextSpawnTime: nextSpawn.toISOString(),
+                    lastSpawnTime: lastSpawn.toISOString(),
+                    isActive: false,
+                    spawnOrder: 0
+                };
+                
+                bossSchedule.push(newBoss);
+                showNotification(`New boss ${name} added to schedule!`);
+            }
+            
+            // Recalculate all spawn times and sort
+            calculateAllNextSpawnTimes();
+            sortBossesBySpawnTime();
+            updateActiveBoss();
+            populateBossSchedule();
+            closeModal(addBossModal);
+            saveToLocalStorage();
+        });
+        
+        // Close modals
+        document.getElementById('closeLoginModal').addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeAddBossModal').addEventListener('click', () => closeModal(addBossModal));
+        document.getElementById('cancelLogin').addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('cancelAddBoss').addEventListener('click', () => closeModal(addBossModal));
+        
+        // Edit notes button
+        editNotesBtn.addEventListener('click', function() {
+            adminNotes.focus();
+            showNotification('Notes editor activated');
+        });
+        
+        // Save notes on change
+        adminNotes.addEventListener('change', function() {
+            saveToLocalStorage();
+            showNotification('Notes saved');
+        });
+        
+        // Original button event handlers
+        refreshBtn.addEventListener('click', function() {
+            calculateAllNextSpawnTimes();
+            sortBossesBySpawnTime();
+            updateActiveBoss();
+            populateBossSchedule();
+            showNotification('All boss data refreshed!');
+        });
+        
+        countdownBtn.addEventListener('click', function() {
+            const bossName = currentBoss.textContent;
+            const timeLeft = countdownTimer.textContent;
+            showNotification(`Next boss "${bossName}" spawns in ${timeLeft}`);
+        });
+        
+        timestampBtn.addEventListener('click', function() {
+            const now = new Date();
+            const timestamp = now.toISOString();
+            showNotification(`Current timestamp: ${timestamp}`);
+            navigator.clipboard.writeText(timestamp);
+        });
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) closeModal(loginModal);
+            if (e.target === addBossModal) closeModal(addBossModal);
+            if (e.target === alarmNotification) closeAlarm();
+        });
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>
