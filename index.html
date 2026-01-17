@@ -20,6 +20,7 @@
             --warning-yellow: #f59e0b;
             --info-blue: #3b82f6;
             --danger-red: #ef4444;
+            --purple: #8b5cf6;
         }
         
         * {
@@ -401,7 +402,7 @@
         
         .day-badge {
             display: inline-block;
-            background: #8b5cf6;
+            background: var(--purple);
             color: white;
             padding: 3px 8px;
             border-radius: 10px;
@@ -475,6 +476,14 @@
             background: var(--dark-red);
             transform: translateY(-2px);
             box-shadow: 0 3px 8px rgba(220, 38, 38, 0.3);
+        }
+        
+        .action-btn.delete {
+            background: var(--danger-red);
+        }
+        
+        .action-btn.delete:hover {
+            background: #dc2626;
         }
         
         .add-boss-container {
@@ -915,6 +924,54 @@
             display: none;
         }
         
+        /* Schedule type indicator */
+        .schedule-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .schedule-type-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .weekly-badge {
+            background: var(--purple);
+            color: white;
+        }
+        
+        .interval-badge {
+            background: var(--info-blue);
+            color: white;
+        }
+        
+        /* Day pills */
+        .day-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .day-pill {
+            background: var(--off-white);
+            color: var(--dark-gray);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            border: 1px solid var(--light-red);
+        }
+        
+        .day-pill.active {
+            background: var(--primary-red);
+            color: white;
+            border-color: var(--primary-red);
+        }
+        
         @media (max-width: 768px) {
             .dashboard {
                 grid-template-columns: 1fr;
@@ -989,6 +1046,10 @@
             
             .days-container {
                 grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .modal-content {
+                padding: 15px;
             }
         }
     </style>
@@ -1189,7 +1250,6 @@
                         <option value="raid">Raid Boss</option>
                         <option value="dungeon">Dungeon Boss</option>
                         <option value="event">Event Boss</option>
-                        <option value="weekly">Weekly Boss</option>
                     </select>
                 </div>
                 
@@ -1206,7 +1266,7 @@
                 
                 <!-- DAYS SELECTION -->
                 <div class="form-group">
-                    <label>Select Days (Optional - Leave empty for every day)</label>
+                    <label>Select Days</label>
                     <div class="days-container">
                         <input type="checkbox" id="day-sun" class="day-checkbox" value="0">
                         <label for="day-sun" class="day-label">Sun</label>
@@ -1230,18 +1290,19 @@
                         <label for="day-sat" class="day-label">Sat</label>
                     </div>
                     <p class="days-note">
-                        Leave all days unselected for boss to spawn EVERY DAY<br>
-                        <strong>Note:</strong> Jika memilih hari tertentu, interval otomatis menjadi 0 (spawn mingguan)
+                        <strong>Weekly Schedule:</strong> Pilih hari untuk spawn mingguan (interval akan diatur ke 0)<br>
+                        <strong>Interval Schedule:</strong> Biarkan kosong untuk spawn setiap hari dengan interval tertentu
                     </p>
                 </div>
                 
-                <!-- RESPAWN INTERVAL (HIDDEN/SHOW BASED ON DAYS) -->
+                <!-- RESPAWN INTERVAL -->
                 <div class="form-group" id="intervalGroup">
                     <label for="respawnInterval">Respawn Interval (Hours) *</label>
                     <input type="number" id="respawnInterval" min="0" max="168" placeholder="e.g., 2 (for 2 hours), 0 for weekly" value="2" required>
                     <div class="error-message" id="intervalError"></div>
                     <p class="interval-note" id="intervalNote">
-                        Untuk boss yang spawn setiap hari. Contoh: input 16:00 dengan interval 10h = next spawn 02:00
+                        <strong>Weekly (0):</strong> Boss akan spawn setiap minggu pada hari yang dipilih<br>
+                        <strong>Interval (>0):</strong> Boss akan spawn setiap X jam (maksimal 168 jam / 7 hari)
                     </p>
                 </div>
                 
@@ -1326,7 +1387,7 @@
                 lastSpawnTime: null,
                 respawnInterval: 0,
                 spawnDays: [6],
-                notes: "Weekend world boss - Sabtu jam 16:00",
+                notes: "Weekend world boss - Saturday 16:00",
                 isActive: false,
                 spawnOrder: 0
             },
@@ -1358,7 +1419,7 @@
         let alarmMuted = false;
         let alarmTriggered = false;
         let alarmCooldown = false;
-        const ALARM_THRESHOLD = 300;
+        const ALARM_THRESHOLD = 300; // 5 minutes in seconds
         
         // Audio context for sound
         let audioContext;
@@ -1424,7 +1485,7 @@
             
             // Add event listener for day selection changes
             document.querySelectorAll('.day-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateIntervalFieldVisibility);
+                checkbox.addEventListener('change', updateIntervalBasedOnDays);
             });
             
             // Initialize event listeners
@@ -1559,7 +1620,7 @@
             });
         }
         
-        // Handle boss form submission
+        // Handle boss form submission - FIXED VERSION
         function handleBossFormSubmit() {
             // Reset error messages
             clearErrorMessages();
@@ -1570,7 +1631,7 @@
             const type = document.getElementById('bossType').value;
             const hour = parseInt(document.getElementById('spawnHour').value) || 0;
             const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
-            const respawnInterval = parseInt(respawnIntervalInput.value) || 2;
+            let respawnInterval = parseInt(respawnIntervalInput.value) || 2;
             const notes = document.getElementById('bossNotes').value.trim();
             const bossId = editBossIdInput.value ? parseInt(editBossIdInput.value) : null;
             
@@ -1613,20 +1674,25 @@
             
             const spawnDays = selectedDays.length > 0 ? selectedDays : null;
             
-            // Determine if this is weekly or interval schedule
-            const isWeeklySchedule = spawnDays && spawnDays.length > 0 && respawnInterval === 0;
-            const finalInterval = isWeeklySchedule ? 0 : respawnInterval;
+            // Determine schedule type based on selection
+            // Jika ada hari yang dipilih -> Weekly (interval harus 0)
+            // Jika tidak ada hari yang dipilih -> Interval (bisa berapa saja)
+            if (spawnDays && spawnDays.length > 0) {
+                // Force interval to 0 for weekly schedule
+                respawnInterval = 0;
+                respawnIntervalInput.value = 0;
+            }
             
-            // Validate interval for interval schedule
-            if (!isWeeklySchedule && (isNaN(finalInterval) || finalInterval < 1 || finalInterval > 168)) {
-                showError(intervalError, 'Respawn interval must be between 1 and 168 hours');
+            // Validate interval
+            if (respawnInterval < 0 || respawnInterval > 168) {
+                showError(intervalError, 'Respawn interval must be between 0 and 168 hours');
                 document.getElementById('respawnInterval').classList.add('error-input');
                 isValid = false;
             }
             
-            // Validate weekly schedule
-            if (isWeeklySchedule && (!spawnDays || spawnDays.length === 0)) {
-                showError(intervalError, 'For weekly schedule, you must select at least one day');
+            // Validate weekly schedule (interval = 0)
+            if (respawnInterval === 0 && (!spawnDays || spawnDays.length === 0)) {
+                showError(intervalError, 'For weekly schedule (interval 0), you must select at least one day');
                 isValid = false;
             }
             
@@ -1634,20 +1700,29 @@
                 return;
             }
             
-            // Create LAST spawn time based on user input
+            // Get current time
             const now = new Date();
+            
+            // Create LAST spawn time based on user input
             let lastSpawn = new Date(now);
             lastSpawn.setHours(hour, minute, 0, 0);
             
-            // If the input time is in the future today, adjust to yesterday
-            if (lastSpawn > now) {
-                lastSpawn.setDate(lastSpawn.getDate() - 1);
-            }
-            
-            // Adjust last spawn to match selected days for weekly schedule
-            if (isWeeklySchedule) {
-                // Find the closest past day that matches the schedule
-                while (!spawnDays.includes(lastSpawn.getDay())) {
+            // Adjust last spawn based on schedule type
+            if (respawnInterval === 0 && spawnDays) {
+                // WEEKLY SCHEDULE
+                // Adjust last spawn to match the selected day in the past
+                let daysSubtracted = 0;
+                while (!spawnDays.includes(lastSpawn.getDay()) || lastSpawn > now) {
+                    lastSpawn.setDate(lastSpawn.getDate() - 1);
+                    daysSubtracted++;
+                    if (daysSubtracted > 14) { // Safety limit
+                        break;
+                    }
+                }
+            } else {
+                // INTERVAL SCHEDULE
+                // If the time is in the future, subtract one day
+                if (lastSpawn > now) {
                     lastSpawn.setDate(lastSpawn.getDate() - 1);
                 }
             }
@@ -1655,39 +1730,37 @@
             // Calculate next spawn time
             let nextSpawn;
             
-            if (isWeeklySchedule) {
-                // Weekly schedule
+            if (respawnInterval === 0 && spawnDays) {
+                // WEEKLY SCHEDULE
                 nextSpawn = new Date(lastSpawn);
                 
-                // Find next occurrence in the future
+                // Find next occurrence
                 let daysAdded = 0;
                 do {
                     nextSpawn.setDate(nextSpawn.getDate() + 1);
                     daysAdded++;
-                    
-                    // Safety check
-                    if (daysAdded > 14) {
+                    if (daysAdded > 7) {
                         break;
                     }
                 } while (!spawnDays.includes(nextSpawn.getDay()));
                 
-                // Make sure next spawn is in the future
+                // Ensure next spawn is in the future
                 if (nextSpawn <= now) {
                     nextSpawn.setDate(nextSpawn.getDate() + 7);
                 }
             } else {
-                // Interval schedule
-                nextSpawn = new Date(lastSpawn.getTime() + finalInterval * 3600000);
+                // INTERVAL SCHEDULE
+                nextSpawn = new Date(lastSpawn.getTime() + respawnInterval * 3600000);
                 
-                // Make sure next spawn is in the future
+                // Ensure next spawn is in the future
                 while (nextSpawn <= now) {
-                    nextSpawn.setTime(nextSpawn.getTime() + finalInterval * 3600000);
+                    nextSpawn.setTime(nextSpawn.getTime() + respawnInterval * 3600000);
                 }
                 
                 // If specific days are selected, adjust to match
                 if (spawnDays && spawnDays.length > 0) {
                     while (!spawnDays.includes(nextSpawn.getDay())) {
-                        nextSpawn.setTime(nextSpawn.getTime() + 24 * 3600000);
+                        nextSpawn.setDate(nextSpawn.getDate() + 1);
                     }
                 }
             }
@@ -1697,21 +1770,25 @@
                 const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
                 
                 if (bossIndex !== -1) {
+                    // Save old boss data
+                    const oldBoss = bossSchedule[bossIndex];
+                    
+                    // Update boss data
                     bossSchedule[bossIndex] = {
-                        ...bossSchedule[bossIndex],
+                        ...oldBoss,
                         level,
                         name,
                         type,
-                        scheduleType: isWeeklySchedule ? "weekly" : "interval",
-                        respawnInterval: finalInterval,
-                        spawnDays,
+                        scheduleType: respawnInterval === 0 ? "weekly" : "interval",
+                        respawnInterval: respawnInterval,
+                        spawnDays: spawnDays,
                         notes,
                         lastSpawnTime: lastSpawn.toISOString(),
                         nextSpawnTime: nextSpawn.toISOString(),
                         isActive: false
                     };
                     
-                    showNotification(`Boss ${name} updated successfully!`, 'success');
+                    showNotification(`Boss "${name}" updated successfully!`, 'success');
                 }
             } else {
                 // ADD NEW BOSS
@@ -1720,9 +1797,9 @@
                     level,
                     name,
                     type,
-                    scheduleType: isWeeklySchedule ? "weekly" : "interval",
-                    respawnInterval: finalInterval,
-                    spawnDays,
+                    scheduleType: respawnInterval === 0 ? "weekly" : "interval",
+                    respawnInterval: respawnInterval,
+                    spawnDays: spawnDays,
                     notes,
                     lastSpawnTime: lastSpawn.toISOString(),
                     nextSpawnTime: nextSpawn.toISOString(),
@@ -1731,7 +1808,7 @@
                 };
                 
                 bossSchedule.push(newBoss);
-                showNotification(`New boss ${name} added to schedule!`, 'success');
+                showNotification(`New boss "${name}" added to schedule!`, 'success');
             }
             
             // Recalculate all spawn times and sort
@@ -1744,6 +1821,25 @@
             
             // Reset form
             resetBossForm();
+        }
+        
+        // Update interval based on day selection
+        function updateIntervalBasedOnDays() {
+            const anyDaySelected = document.querySelectorAll('.day-checkbox:checked').length > 0;
+            
+            if (anyDaySelected) {
+                // Weekly schedule
+                respawnIntervalInput.value = 0;
+                respawnIntervalInput.disabled = true;
+                intervalNote.innerHTML = '<strong>Weekly Schedule:</strong> Boss akan spawn setiap minggu pada hari yang dipilih (interval otomatis 0).';
+            } else {
+                // Interval schedule
+                respawnIntervalInput.disabled = false;
+                if (respawnIntervalInput.value == 0) {
+                    respawnIntervalInput.value = 2;
+                }
+                intervalNote.innerHTML = '<strong>Interval Schedule:</strong> Boss akan spawn setiap X jam. Biarkan kosong untuk spawn setiap hari.';
+            }
         }
         
         // Clear error messages
@@ -1762,23 +1858,6 @@
         function showError(element, message) {
             element.textContent = message;
             element.style.display = 'block';
-        }
-        
-        // Update interval field visibility based on day selection
-        function updateIntervalFieldVisibility() {
-            const anyDaySelected = document.querySelectorAll('.day-checkbox:checked').length > 0;
-            
-            if (anyDaySelected) {
-                intervalGroup.style.display = 'none';
-                respawnIntervalInput.value = 0;
-                respawnIntervalInput.required = false;
-                intervalNote.innerHTML = '<strong>Weekly Schedule:</strong> Boss akan spawn pada hari yang dipilih setiap minggu pada jam yang sama.';
-            } else {
-                intervalGroup.style.display = 'block';
-                respawnIntervalInput.value = respawnIntervalInput.value || 2;
-                respawnIntervalInput.required = true;
-                intervalNote.innerHTML = 'Untuk boss yang spawn setiap hari. Contoh: input 16:00 dengan interval 10h = next spawn 02:00';
-            }
         }
         
         // Initialize audio context for alarm sound
@@ -1995,7 +2074,8 @@
             
             bossSchedule.forEach(boss => {
                 if (!boss.lastSpawnTime) {
-                    const hoursOffset = boss.respawnInterval > 0 ? boss.respawnInterval - 1 : 0;
+                    // Initialize with a reasonable past time
+                    const hoursOffset = boss.respawnInterval > 0 ? boss.respawnInterval - 1 : 24;
                     boss.lastSpawnTime = new Date(now.getTime() - hoursOffset * 3600000);
                 }
                 
@@ -2003,22 +2083,43 @@
                 let nextSpawn;
                 
                 if (boss.respawnInterval === 0 && boss.spawnDays && boss.spawnDays.length > 0) {
-                    // Weekly schedule
+                    // WEEKLY SCHEDULE
                     nextSpawn = new Date(lastSpawn);
                     
-                    // Find next occurrence
-                    while (nextSpawn <= now || !boss.spawnDays.includes(nextSpawn.getDay())) {
-                        nextSpawn.setDate(nextSpawn.getDate() + 1);
+                    // Ensure last spawn matches a scheduled day
+                    if (!boss.spawnDays.includes(lastSpawn.getDay())) {
+                        // Adjust to the nearest past scheduled day
+                        let adjustedSpawn = new Date(lastSpawn);
+                        let daysBack = 0;
+                        while (!boss.spawnDays.includes(adjustedSpawn.getDay())) {
+                            adjustedSpawn.setDate(adjustedSpawn.getDate() - 1);
+                            daysBack++;
+                            if (daysBack > 7) break;
+                        }
+                        if (daysBack <= 7) {
+                            lastSpawn.setDate(lastSpawn.getDate() - daysBack);
+                        }
                     }
                     
-                    // If we've gone past all days in the current week, jump to next week
-                    if (nextSpawn <= now) {
+                    // Calculate next spawn
+                    nextSpawn = new Date(lastSpawn);
+                    let daysAdded = 0;
+                    do {
+                        nextSpawn.setDate(nextSpawn.getDate() + 1);
+                        daysAdded++;
+                        if (daysAdded > 7) break;
+                    } while (!boss.spawnDays.includes(nextSpawn.getDay()));
+                    
+                    // Ensure next spawn is in the future
+                    while (nextSpawn <= now) {
                         nextSpawn.setDate(nextSpawn.getDate() + 7);
                     }
+                    
                 } else {
-                    // Interval schedule
+                    // INTERVAL SCHEDULE
                     nextSpawn = new Date(lastSpawn.getTime() + boss.respawnInterval * 3600000);
                     
+                    // Ensure next spawn is in the future and matches schedule days
                     while (nextSpawn <= now || !isValidSpawnDay(boss, nextSpawn)) {
                         nextSpawn.setTime(nextSpawn.getTime() + boss.respawnInterval * 3600000);
                     }
@@ -2127,14 +2228,13 @@
                         nextSpawn = new Date(lastSpawn);
                         
                         // Find next occurrence
+                        let daysAdded = 0;
                         do {
                             nextSpawn.setDate(nextSpawn.getDate() + 1);
+                            daysAdded++;
+                            if (daysAdded > 7) break;
                         } while (!boss.spawnDays.includes(nextSpawn.getDay()));
                         
-                        // Make sure it's in the future
-                        if (nextSpawn <= now) {
-                            nextSpawn.setDate(nextSpawn.getDate() + 7);
-                        }
                     } else {
                         // Interval schedule
                         nextSpawn = new Date(lastSpawn.getTime() + boss.respawnInterval * 3600000);
@@ -2190,15 +2290,46 @@
                 let nextSpawnHTML = '';
                 let rowClass = '';
                 
-                if (boss.spawnDays && boss.spawnDays.length > 0 && !boss.spawnDays.includes(currentDay)) {
+                // Check if today is an active day for this boss
+                const isTodayActive = !boss.spawnDays || boss.spawnDays.length === 0 || boss.spawnDays.includes(currentDay);
+                
+                if (!isTodayActive) {
                     rowClass = 'inactive-day';
                 }
                 
                 // Schedule type display
                 if (boss.respawnInterval === 0 && boss.spawnDays && boss.spawnDays.length > 0) {
+                    // Weekly schedule
                     const days = boss.spawnDays.map(d => DAYS_SHORT[d]).join(', ');
-                    scheduleTypeHTML = `<span class="fixed-schedule">Weekly: ${days}</span>`;
+                    scheduleTypeHTML = `
+                        <span class="fixed-schedule">Weekly</span>
+                        <div class="schedule-indicator">
+                            <span class="schedule-type-badge weekly-badge">Weekly</span>
+                            <div class="day-pills">
+                                ${boss.spawnDays.map(day => 
+                                    `<span class="day-pill ${currentDay === day ? 'active' : ''}">${DAYS_SHORT[day]}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
                 } else if (boss.respawnInterval > 0) {
+                    // Interval schedule
+                    let daysInfo = '';
+                    if (boss.spawnDays && boss.spawnDays.length > 0) {
+                        const days = boss.spawnDays.map(d => DAYS_SHORT[d]).join(', ');
+                        daysInfo = `<div class="day-pills">${boss.spawnDays.map(day => 
+                            `<span class="day-pill ${currentDay === day ? 'active' : ''}">${DAYS_SHORT[day]}</span>`
+                        ).join('')}</div>`;
+                    }
+                    scheduleTypeHTML = `
+                        <span class="interval-schedule">Every ${boss.respawnInterval}h</span>
+                        <div class="schedule-indicator">
+                            <span class="schedule-type-badge interval-badge">Interval: ${boss.respawnInterval}h</span>
+                            ${daysInfo}
+                        </div>
+                    `;
+                } else {
+                    // Daily schedule (no specific days, interval > 0)
                     scheduleTypeHTML = `<span class="interval-schedule">Every ${boss.respawnInterval}h</span>`;
                 }
                 
@@ -2267,8 +2398,7 @@
                     <td>
                         <strong>${boss.name}</strong>
                         ${boss.isActive ? '<span class="active-indicator">NEXT</span>' : ''}
-                        ${boss.spawnDays && boss.spawnDays.length > 0 && !boss.spawnDays.includes(currentDay) ? 
-                          '<span class="day-off-badge">NOT TODAY</span>' : ''}
+                        ${!isTodayActive ? '<span class="day-off-badge">NOT TODAY</span>' : ''}
                     </td>
                     <td>${scheduleTypeHTML}</td>
                     <td>${lastSpawnHTML}</td>
@@ -2277,7 +2407,7 @@
                         <button class="action-btn edit-boss-btn" data-id="${boss.id}" title="Edit Boss">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-boss-btn" data-id="${boss.id}" title="Delete Boss">
+                        <button class="action-btn delete delete-boss-btn" data-id="${boss.id}" title="Delete Boss">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
@@ -2443,12 +2573,13 @@
             document.getElementById('spawnHour').value = now.getHours();
             document.getElementById('spawnMinute').value = now.getMinutes();
             document.getElementById('respawnInterval').value = 2;
+            document.getElementById('respawnInterval').disabled = false;
             
             document.querySelectorAll('.day-checkbox').forEach(cb => {
                 cb.checked = false;
             });
             
-            updateIntervalFieldVisibility();
+            updateIntervalBasedOnDays();
             clearErrorMessages();
         }
         
@@ -2496,8 +2627,8 @@
                 });
             }
             
-            // Update interval field visibility
-            updateIntervalFieldVisibility();
+            // Update interval field based on days
+            updateIntervalBasedOnDays();
             
             bossModalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Field Boss';
             saveBossBtn.textContent = 'Update Boss';
