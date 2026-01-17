@@ -1390,135 +1390,156 @@
         
         // Handle boss form submission
         function handleBossFormSubmit() {
-            const level = parseInt(document.getElementById('bossLevel').value);
-            const name = document.getElementById('bossName').value.trim();
-            const type = document.getElementById('bossType').value;
-            const hour = parseInt(document.getElementById('spawnHour').value) || 0;
-            const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
-            const respawnInterval = parseInt(respawnIntervalInput.value) || 2;
-            const notes = document.getElementById('bossNotes').value.trim();
-            const bossId = editBossIdInput.value ? parseInt(editBossIdInput.value) : null;
-            
-            // Get selected days
-            const selectedDays = [];
-            document.querySelectorAll('.day-checkbox:checked').forEach(cb => {
-                selectedDays.push(parseInt(cb.value));
-            });
-            
-            const spawnDays = selectedDays.length > 0 ? selectedDays : null;
-            
-            // Jika ada hari yang dipilih, pastikan interval = 0
-            const finalInterval = (spawnDays && spawnDays.length > 0) ? 0 : respawnInterval;
-            
-            // Validasi interval jika tidak ada hari spesifik
-            if (finalInterval > 0 && (finalInterval < 1 || finalInterval > 168)) {
-                showNotification('Respawn interval must be between 1 and 168 hours', 'error');
-                return;
-            }
-            
-            // Validasi nama boss
-            if (!name) {
-                showNotification('Boss name is required', 'error');
-                return;
-            }
-            
-            // Create LAST spawn time based on user input
-            const now = new Date();
-            let lastSpawn = new Date(now);
-            lastSpawn.setHours(hour, minute, 0, 0);
-            
-            // If the input time is in the future today, adjust to yesterday
-            if (lastSpawn > now) {
-                lastSpawn.setDate(lastSpawn.getDate() - 1);
-            }
-            
-            // Calculate next spawn based on schedule type
-            let nextSpawn;
-            
-            if (finalInterval === 0 && spawnDays && spawnDays.length > 0) {
-                // WEEKLY SCHEDULE
-                nextSpawn = calculateNextWeeklySpawn(lastSpawn, spawnDays);
-            } else {
-                // INTERVAL SCHEDULE
-                nextSpawn = new Date(lastSpawn.getTime() + finalInterval * 3600000);
-                
-                // Make sure next spawn is in the future
-                while (nextSpawn <= now || (spawnDays && spawnDays.length > 0 && !spawnDays.includes(nextSpawn.getDay()))) {
-                    if (finalInterval > 0) {
-                        nextSpawn.setTime(nextSpawn.getTime() + finalInterval * 3600000);
-                    } else {
-                        nextSpawn.setDate(nextSpawn.getDate() + 1);
-                    }
-                }
-            }
-            
-            if (bossId) {
-                // UPDATE EXISTING BOSS
-                const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
-                
-                if (bossIndex !== -1) {
-                    bossSchedule[bossIndex] = {
-                        ...bossSchedule[bossIndex],
-                        level,
-                        name,
-                        type,
-                        respawnInterval: finalInterval,
-                        spawnDays,
-                        notes,
-                        lastSpawnTime: lastSpawn.toISOString(),
-                        nextSpawnTime: nextSpawn.toISOString(),
-                        isActive: false
-                    };
-                    
-                    showNotification(`Boss ${name} updated successfully!`);
-                }
-            } else {
-                // ADD NEW BOSS
-                const newBoss = {
-                    id: bossSchedule.length > 0 ? Math.max(...bossSchedule.map(b => b.id)) + 1 : 1,
-                    level,
-                    name,
-                    type,
-                    scheduleType: finalInterval === 0 ? "weekly" : "interval",
-                    respawnInterval: finalInterval,
-                    spawnDays,
-                    notes,
-                    lastSpawnTime: lastSpawn.toISOString(),
-                    nextSpawnTime: nextSpawn.toISOString(),
-                    isActive: false,
-                    spawnOrder: 0
-                };
-                
-                bossSchedule.push(newBoss);
-                showNotification(`New boss ${name} added to schedule!`);
-            }
-            
-            // Recalculate all spawn times and sort
-            calculateAllNextSpawnTimes();
-            sortBossesBySpawnTime();
-            updateActiveBoss();
-            populateBossSchedule();
-            closeModal(addBossModal);
-            saveToLocalStorage();
-            
-            // Reset form
-            editBossIdInput.value = '';
-        }
+    const level = parseInt(document.getElementById('bossLevel').value);
+    const name = document.getElementById('bossName').value.trim();
+    const type = document.getElementById('bossType').value;
+    const hour = parseInt(document.getElementById('spawnHour').value) || 0;
+    const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
+    const respawnInterval = parseInt(respawnIntervalInput.value) || 2;
+    const notes = document.getElementById('bossNotes').value.trim();
+    const bossId = editBossIdInput.value ? parseInt(editBossIdInput.value) : null;
+    
+    // Get selected days
+    const selectedDays = [];
+    document.querySelectorAll('.day-checkbox:checked').forEach(cb => {
+        selectedDays.push(parseInt(cb.value));
+    });
+    
+    const spawnDays = selectedDays.length > 0 ? selectedDays : null;
+    
+    // Jika ada hari yang dipilih, pastikan interval = 0
+    const finalInterval = (spawnDays && spawnDays.length > 0) ? 0 : respawnInterval;
+    
+    // Validasi: Jika interval > 0 (bukan weekly), harus antara 1-168
+    if (finalInterval > 0 && (finalInterval < 1 || finalInterval > 168)) {
+        showNotification('Respawn interval must be between 1 and 168 hours', 'error');
+        return;
+    }
+    
+    // Validasi: Jika interval = 0 (weekly), harus ada hari yang dipilih
+    if (finalInterval === 0 && (!spawnDays || spawnDays.length === 0)) {
+        showNotification('For weekly schedule, you must select at least one day', 'error');
+        return;
+    }
+    
+    // Validasi nama boss
+    if (!name) {
+        showNotification('Boss name is required', 'error');
+        return;
+    }
+    
+    // Validasi jam dan menit
+    if (hour < 0 || hour > 23) {
+        showNotification('Hour must be between 0 and 23', 'error');
+        return;
+    }
+    if (minute < 0 || minute > 59) {
+        showNotification('Minute must be between 0 and 59', 'error');
+        return;
+    }
+    
+    // Create LAST spawn time based on user input
+    const now = new Date();
+    let lastSpawn = new Date(now);
+    lastSpawn.setHours(hour, minute, 0, 0);
+    
+    // If the input time is in the future today, adjust to yesterday
+    if (lastSpawn > now) {
+        lastSpawn.setDate(lastSpawn.getDate() - 1);
+    }
+    
+    // Calculate next spawn based on schedule type
+    let nextSpawn;
+    
+    if (finalInterval === 0 && spawnDays && spawnDays.length > 0) {
+        // WEEKLY SCHEDULE
+        nextSpawn = calculateNextWeeklySpawn(lastSpawn, spawnDays);
+    } else {
+        // INTERVAL SCHEDULE
+        nextSpawn = new Date(lastSpawn.getTime() + finalInterval * 3600000);
         
+        // Make sure next spawn is in the future
+        while (nextSpawn <= now || (spawnDays && spawnDays.length > 0 && !spawnDays.includes(nextSpawn.getDay()))) {
+            if (finalInterval > 0) {
+                nextSpawn.setTime(nextSpawn.getTime() + finalInterval * 3600000);
+            } else {
+                nextSpawn.setDate(nextSpawn.getDate() + 1);
+            }
+        }
+    }
+    
+    if (bossId) {
+        // UPDATE EXISTING BOSS
+        const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
+        
+        if (bossIndex !== -1) {
+            bossSchedule[bossIndex] = {
+                ...bossSchedule[bossIndex],
+                level,
+                name,
+                type,
+                scheduleType: finalInterval === 0 ? "weekly" : "interval",
+                respawnInterval: finalInterval,
+                spawnDays,
+                notes,
+                lastSpawnTime: lastSpawn.toISOString(),
+                nextSpawnTime: nextSpawn.toISOString(),
+                isActive: false
+            };
+            
+            showNotification(`Boss ${name} updated successfully!`);
+        }
+    } else {
+        // ADD NEW BOSS
+        const newBoss = {
+            id: bossSchedule.length > 0 ? Math.max(...bossSchedule.map(b => b.id)) + 1 : 1,
+            level,
+            name,
+            type,
+            scheduleType: finalInterval === 0 ? "weekly" : "interval",
+            respawnInterval: finalInterval,
+            spawnDays,
+            notes,
+            lastSpawnTime: lastSpawn.toISOString(),
+            nextSpawnTime: nextSpawn.toISOString(),
+            isActive: false,
+            spawnOrder: 0
+        };
+        
+        bossSchedule.push(newBoss);
+        showNotification(`New boss ${name} added to schedule!`);
+    }
+    
+    // Recalculate all spawn times and sort
+    calculateAllNextSpawnTimes();
+    sortBossesBySpawnTime();
+    updateActiveBoss();
+    populateBossSchedule();
+    closeModal(addBossModal);
+    saveToLocalStorage();
+    
+    // Reset form
+    editBossIdInput.value = '';
+    modalTitle.innerHTML = '<i class="fas fa-dragon"></i> Add New Field Boss';
+    saveBossBtn.textContent = 'Add Boss';
+   }
+       
         // Update interval field visibility based on day selection
         function updateIntervalFieldVisibility() {
-            const anyDaySelected = document.querySelectorAll('.day-checkbox:checked').length > 0;
-            
-            if (anyDaySelected) {
-                intervalGroup.style.display = 'none';
-                respawnIntervalInput.value = 0;
-                intervalNote.innerHTML = '<strong>Weekly Schedule:</strong> Boss akan spawn pada hari yang dipilih setiap minggu pada jam yang sama.';
-            } else {
-                intervalGroup.style.display = 'block';
-                respawnIntervalInput.value = respawnIntervalInput.value || 2;
-                intervalNote.innerHTML = 'Untuk boss yang spawn setiap hari. Contoh: input 16:00 dengan interval 10h = next spawn 02:00';
-            }
-        }
+    const anyDaySelected = document.querySelectorAll('.day-checkbox:checked').length > 0;
+    
+    if (anyDaySelected) {
+        intervalGroup.style.display = 'none';
+        respawnIntervalInput.value = 0;
+        respawnIntervalInput.required = false;
+        intervalNote.innerHTML = '<strong>Weekly Schedule:</strong> Boss akan spawn pada hari yang dipilih setiap minggu pada jam yang sama.';
+    } else {
+        intervalGroup.style.display = 'block';
+        respawnIntervalInput.value = respawnIntervalInput.value || 2;
+        respawnIntervalInput.required = true;
+        intervalNote.innerHTML = 'Untuk boss yang spawn setiap hari. Contoh: input 16:00 dengan interval 10h = next spawn 02:00';
+    }
+}
         
         // Initialize audio context for alarm sound
         function initializeAudio() {
@@ -2287,3 +2308,4 @@
     </script>
 </body>
 </html>
+
