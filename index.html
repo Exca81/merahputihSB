@@ -1280,6 +1280,229 @@
             document.querySelectorAll('.day-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', updateIntervalFieldVisibility);
             });
+            
+            // Initialize event listeners
+            initEventListeners();
+        }
+        
+        // Initialize all event listeners
+        function initEventListeners() {
+            // Admin login/logout
+            adminLoginBtn.addEventListener('click', () => openModal(loginModal));
+            adminLogoutBtn.addEventListener('click', logoutAdmin);
+            
+            // Alarm controls
+            toggleAlarmBtn.addEventListener('click', function() {
+                alarmEnabled = !alarmEnabled;
+                updateAlarmButtons();
+                saveToLocalStorage();
+                showNotification(`Alarm ${alarmEnabled ? 'enabled' : 'disabled'}`);
+            });
+            
+            testAlarmBtn.addEventListener('click', testAlarm);
+            
+            muteAlarmBtn.addEventListener('click', function() {
+                alarmMuted = !alarmMuted;
+                if (alarmMuted) {
+                    stopAlarmSound();
+                }
+                updateAlarmButtons();
+                saveToLocalStorage();
+                showNotification(`Alarm ${alarmMuted ? 'muted' : 'unmuted'}`);
+            });
+            
+            closeAlarmBtn.addEventListener('click', closeAlarm);
+            
+            alarmBtn.addEventListener('click', testAlarm);
+            
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const username = document.getElementById('adminUsername').value;
+                const password = document.getElementById('adminPassword').value;
+                loginAdmin(username, password);
+            });
+            
+            // Add new boss button
+            addNewBossBtn.addEventListener('click', addNewBoss);
+            editScheduleBtn.addEventListener('click', addNewBoss);
+            
+            // Add/Edit boss form
+            document.getElementById('addBossForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleBossFormSubmit();
+            });
+            
+            // Close modals
+            document.getElementById('closeLoginModal').addEventListener('click', () => closeModal(loginModal));
+            document.getElementById('closeAddBossModal').addEventListener('click', () => closeModal(addBossModal));
+            document.getElementById('cancelLogin').addEventListener('click', () => closeModal(loginModal));
+            document.getElementById('cancelAddBoss').addEventListener('click', () => closeModal(addBossModal));
+            
+            // Edit notes button
+            editNotesBtn.addEventListener('click', function() {
+                adminNotes.focus();
+                showNotification('Notes editor activated');
+            });
+            
+            // Save notes on change
+            adminNotes.addEventListener('change', function() {
+                saveToLocalStorage();
+                showNotification('Notes saved');
+            });
+            
+            // Original button event handlers
+            refreshBtn.addEventListener('click', function() {
+                calculateAllNextSpawnTimes();
+                sortBossesBySpawnTime();
+                updateActiveBoss();
+                populateBossSchedule();
+                showNotification('All boss data refreshed!');
+            });
+            
+            countdownBtn.addEventListener('click', function() {
+                const bossName = currentBoss.textContent;
+                const timeLeft = countdownTimer.textContent;
+                showNotification(`Next boss "${bossName}" spawns in ${timeLeft}`);
+            });
+            
+            timestampBtn.addEventListener('click', function() {
+                const now = new Date();
+                const timestamp = now.toISOString();
+                showNotification(`Current timestamp: ${timestamp}`);
+                navigator.clipboard.writeText(timestamp);
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === loginModal) closeModal(loginModal);
+                if (e.target === addBossModal) closeModal(addBossModal);
+                if (e.target === alarmNotification) closeAlarm();
+            });
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(() => {
+                    Notification.requestPermission();
+                }, 2000);
+            }
+        }
+        
+        // Handle boss form submission
+        function handleBossFormSubmit() {
+            const level = parseInt(document.getElementById('bossLevel').value);
+            const name = document.getElementById('bossName').value.trim();
+            const type = document.getElementById('bossType').value;
+            const hour = parseInt(document.getElementById('spawnHour').value) || 0;
+            const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
+            const respawnInterval = parseInt(respawnIntervalInput.value) || 2;
+            const notes = document.getElementById('bossNotes').value.trim();
+            const bossId = editBossIdInput.value ? parseInt(editBossIdInput.value) : null;
+            
+            // Get selected days
+            const selectedDays = [];
+            document.querySelectorAll('.day-checkbox:checked').forEach(cb => {
+                selectedDays.push(parseInt(cb.value));
+            });
+            
+            const spawnDays = selectedDays.length > 0 ? selectedDays : null;
+            
+            // Jika ada hari yang dipilih, pastikan interval = 0
+            const finalInterval = (spawnDays && spawnDays.length > 0) ? 0 : respawnInterval;
+            
+            // Validasi interval jika tidak ada hari spesifik
+            if (finalInterval > 0 && (finalInterval < 1 || finalInterval > 168)) {
+                showNotification('Respawn interval must be between 1 and 168 hours', 'error');
+                return;
+            }
+            
+            // Validasi nama boss
+            if (!name) {
+                showNotification('Boss name is required', 'error');
+                return;
+            }
+            
+            // Create LAST spawn time based on user input
+            const now = new Date();
+            let lastSpawn = new Date(now);
+            lastSpawn.setHours(hour, minute, 0, 0);
+            
+            // If the input time is in the future today, adjust to yesterday
+            if (lastSpawn > now) {
+                lastSpawn.setDate(lastSpawn.getDate() - 1);
+            }
+            
+            // Calculate next spawn based on schedule type
+            let nextSpawn;
+            
+            if (finalInterval === 0 && spawnDays && spawnDays.length > 0) {
+                // WEEKLY SCHEDULE
+                nextSpawn = calculateNextWeeklySpawn(lastSpawn, spawnDays);
+            } else {
+                // INTERVAL SCHEDULE
+                nextSpawn = new Date(lastSpawn.getTime() + finalInterval * 3600000);
+                
+                // Make sure next spawn is in the future
+                while (nextSpawn <= now || (spawnDays && spawnDays.length > 0 && !spawnDays.includes(nextSpawn.getDay()))) {
+                    if (finalInterval > 0) {
+                        nextSpawn.setTime(nextSpawn.getTime() + finalInterval * 3600000);
+                    } else {
+                        nextSpawn.setDate(nextSpawn.getDate() + 1);
+                    }
+                }
+            }
+            
+            if (bossId) {
+                // UPDATE EXISTING BOSS
+                const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
+                
+                if (bossIndex !== -1) {
+                    bossSchedule[bossIndex] = {
+                        ...bossSchedule[bossIndex],
+                        level,
+                        name,
+                        type,
+                        respawnInterval: finalInterval,
+                        spawnDays,
+                        notes,
+                        lastSpawnTime: lastSpawn.toISOString(),
+                        nextSpawnTime: nextSpawn.toISOString(),
+                        isActive: false
+                    };
+                    
+                    showNotification(`Boss ${name} updated successfully!`);
+                }
+            } else {
+                // ADD NEW BOSS
+                const newBoss = {
+                    id: bossSchedule.length > 0 ? Math.max(...bossSchedule.map(b => b.id)) + 1 : 1,
+                    level,
+                    name,
+                    type,
+                    scheduleType: finalInterval === 0 ? "weekly" : "interval",
+                    respawnInterval: finalInterval,
+                    spawnDays,
+                    notes,
+                    lastSpawnTime: lastSpawn.toISOString(),
+                    nextSpawnTime: nextSpawn.toISOString(),
+                    isActive: false,
+                    spawnOrder: 0
+                };
+                
+                bossSchedule.push(newBoss);
+                showNotification(`New boss ${name} added to schedule!`);
+            }
+            
+            // Recalculate all spawn times and sort
+            calculateAllNextSpawnTimes();
+            sortBossesBySpawnTime();
+            updateActiveBoss();
+            populateBossSchedule();
+            closeModal(addBossModal);
+            saveToLocalStorage();
+            
+            // Reset form
+            editBossIdInput.value = '';
         }
         
         // Update interval field visibility based on day selection
@@ -1781,20 +2004,22 @@
                 bossScheduleTable.appendChild(row);
             });
             
-            // Add event listeners to action buttons - FIXED
-            document.querySelectorAll('.edit-boss-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const bossId = parseInt(this.getAttribute('data-id'));
-                    editBoss(bossId);
+            // Add event listeners to action buttons
+            setTimeout(() => {
+                document.querySelectorAll('.edit-boss-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const bossId = parseInt(this.getAttribute('data-id'));
+                        editBoss(bossId);
+                    });
                 });
-            });
-            
-            document.querySelectorAll('.delete-boss-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const bossId = parseInt(this.getAttribute('data-id'));
-                    deleteBoss(bossId);
+                
+                document.querySelectorAll('.delete-boss-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const bossId = parseInt(this.getAttribute('data-id'));
+                        deleteBoss(bossId);
+                    });
                 });
-            });
+            }, 0);
         }
         
         // Update time displays
@@ -1942,7 +2167,7 @@
             openModal(addBossModal);
         }
         
-        // Edit boss function - FIXED
+        // Edit boss function
         function editBoss(bossId) {
             const boss = bossSchedule.find(b => b.id === bossId);
             if (!boss) return;
@@ -1955,7 +2180,7 @@
             document.getElementById('bossType').value = boss.type;
             respawnIntervalInput.value = boss.respawnInterval || 2;
             document.getElementById('bossNotes').value = boss.notes || '';
-            editBossIdInput.value = boss.id; // Store boss ID in hidden field
+            editBossIdInput.value = boss.id;
             
             // Show LAST spawn time
             if (boss.lastSpawnTime) {
@@ -2056,215 +2281,6 @@
             }
         `;
         document.head.appendChild(style);
-        
-        // Event Listeners
-        adminLoginBtn.addEventListener('click', () => openModal(loginModal));
-        adminLogoutBtn.addEventListener('click', logoutAdmin);
-        
-        // Alarm controls
-        toggleAlarmBtn.addEventListener('click', function() {
-            alarmEnabled = !alarmEnabled;
-            updateAlarmButtons();
-            saveToLocalStorage();
-            showNotification(`Alarm ${alarmEnabled ? 'enabled' : 'disabled'}`);
-        });
-        
-        testAlarmBtn.addEventListener('click', testAlarm);
-        
-        muteAlarmBtn.addEventListener('click', function() {
-            alarmMuted = !alarmMuted;
-            if (alarmMuted) {
-                stopAlarmSound();
-            }
-            updateAlarmButtons();
-            saveToLocalStorage();
-            showNotification(`Alarm ${alarmMuted ? 'muted' : 'unmuted'}`);
-        });
-        
-        closeAlarmBtn.addEventListener('click', closeAlarm);
-        
-        alarmBtn.addEventListener('click', testAlarm);
-        
-        // Request notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            setTimeout(() => {
-                Notification.requestPermission();
-            }, 2000);
-        }
-        
-        // Login form
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('adminUsername').value;
-            const password = document.getElementById('adminPassword').value;
-            loginAdmin(username, password);
-        });
-        
-        // Add new boss button
-        addNewBossBtn.addEventListener('click', addNewBoss);
-        editScheduleBtn.addEventListener('click', addNewBoss);
-        
-        // Add/Edit boss form - FIXED
-        document.getElementById('addBossForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const level = parseInt(document.getElementById('bossLevel').value);
-            const name = document.getElementById('bossName').value.trim();
-            const type = document.getElementById('bossType').value;
-            const hour = parseInt(document.getElementById('spawnHour').value) || 0;
-            const minute = parseInt(document.getElementById('spawnMinute').value) || 0;
-            const respawnInterval = parseInt(respawnIntervalInput.value) || 2;
-            const notes = document.getElementById('bossNotes').value.trim();
-            const bossId = editBossIdInput.value ? parseInt(editBossIdInput.value) : null;
-            
-            // Get selected days
-            const selectedDays = [];
-            document.querySelectorAll('.day-checkbox:checked').forEach(cb => {
-                selectedDays.push(parseInt(cb.value));
-            });
-            
-            const spawnDays = selectedDays.length > 0 ? selectedDays : null;
-            
-            // Jika ada hari yang dipilih, pastikan interval = 0
-            const finalInterval = (spawnDays && spawnDays.length > 0) ? 0 : respawnInterval;
-            
-            // Validasi interval jika tidak ada hari spesifik
-            if (finalInterval > 0 && (finalInterval < 1 || finalInterval > 168)) {
-                showNotification('Respawn interval must be between 1 and 168 hours', 'error');
-                return;
-            }
-            
-            // Create LAST spawn time based on user input
-            const now = new Date();
-            let lastSpawn = new Date(now);
-            lastSpawn.setHours(hour, minute, 0, 0);
-            
-            // If the input time is in the future today, adjust to yesterday
-            if (lastSpawn > now) {
-                lastSpawn.setDate(lastSpawn.getDate() - 1);
-            }
-            
-            // Calculate next spawn based on schedule type
-            let nextSpawn;
-            
-            if (finalInterval === 0 && spawnDays && spawnDays.length > 0) {
-                // WEEKLY SCHEDULE
-                nextSpawn = calculateNextWeeklySpawn(lastSpawn, spawnDays);
-            } else {
-                // INTERVAL SCHEDULE
-                nextSpawn = new Date(lastSpawn.getTime() + finalInterval * 3600000);
-                
-                // Make sure next spawn is in the future
-                while (nextSpawn <= now || (spawnDays && spawnDays.length > 0 && !spawnDays.includes(nextSpawn.getDay()))) {
-                    if (finalInterval > 0) {
-                        nextSpawn.setTime(nextSpawn.getTime() + finalInterval * 3600000);
-                    } else {
-                        nextSpawn.setDate(nextSpawn.getDate() + 1);
-                    }
-                }
-            }
-            
-            if (bossId) {
-                // UPDATE EXISTING BOSS - FIXED
-                const bossIndex = bossSchedule.findIndex(b => b.id === bossId);
-                
-                if (bossIndex !== -1) {
-                    bossSchedule[bossIndex] = {
-                        ...bossSchedule[bossIndex],
-                        level,
-                        name,
-                        type,
-                        respawnInterval: finalInterval,
-                        spawnDays,
-                        notes,
-                        lastSpawnTime: lastSpawn.toISOString(),
-                        nextSpawnTime: nextSpawn.toISOString(),
-                        isActive: false
-                    };
-                    
-                    showNotification(`Boss ${name} updated successfully!`);
-                }
-            } else {
-                // ADD NEW BOSS
-                const newBoss = {
-                    id: bossSchedule.length > 0 ? Math.max(...bossSchedule.map(b => b.id)) + 1 : 1,
-                    level,
-                    name,
-                    type,
-                    scheduleType: finalInterval === 0 ? "weekly" : "interval",
-                    respawnInterval: finalInterval,
-                    spawnDays,
-                    notes,
-                    lastSpawnTime: lastSpawn.toISOString(),
-                    nextSpawnTime: nextSpawn.toISOString(),
-                    isActive: false,
-                    spawnOrder: 0
-                };
-                
-                bossSchedule.push(newBoss);
-                showNotification(`New boss ${name} added to schedule!`);
-            }
-            
-            // Recalculate all spawn times and sort
-            calculateAllNextSpawnTimes();
-            sortBossesBySpawnTime();
-            updateActiveBoss();
-            populateBossSchedule();
-            closeModal(addBossModal);
-            saveToLocalStorage();
-            
-            // Reset form
-            editBossIdInput.value = '';
-            modalTitle.innerHTML = '<i class="fas fa-dragon"></i> Add New Field Boss';
-            saveBossBtn.textContent = 'Add Boss';
-        });
-        
-        // Close modals
-        document.getElementById('closeLoginModal').addEventListener('click', () => closeModal(loginModal));
-        document.getElementById('closeAddBossModal').addEventListener('click', () => closeModal(addBossModal));
-        document.getElementById('cancelLogin').addEventListener('click', () => closeModal(loginModal));
-        document.getElementById('cancelAddBoss').addEventListener('click', () => closeModal(addBossModal));
-        
-        // Edit notes button
-        editNotesBtn.addEventListener('click', function() {
-            adminNotes.focus();
-            showNotification('Notes editor activated');
-        });
-        
-        // Save notes on change
-        adminNotes.addEventListener('change', function() {
-            saveToLocalStorage();
-            showNotification('Notes saved');
-        });
-        
-        // Original button event handlers
-        refreshBtn.addEventListener('click', function() {
-            calculateAllNextSpawnTimes();
-            sortBossesBySpawnTime();
-            updateActiveBoss();
-            populateBossSchedule();
-            showNotification('All boss data refreshed!');
-        });
-        
-        countdownBtn.addEventListener('click', function() {
-            const bossName = currentBoss.textContent;
-            const timeLeft = countdownTimer.textContent;
-            showNotification(`Next boss "${bossName}" spawns in ${timeLeft}`);
-        });
-        
-        timestampBtn.addEventListener('click', function() {
-            const now = new Date();
-            const timestamp = now.toISOString();
-            showNotification(`Current timestamp: ${timestamp}`);
-            navigator.clipboard.writeText(timestamp);
-        });
-        
-        // Close modals when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target === loginModal) closeModal(loginModal);
-            if (e.target === addBossModal) closeModal(addBossModal);
-            if (e.target === alarmNotification) closeAlarm();
-        });
         
         // Initialize the application
         init();
